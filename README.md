@@ -1,243 +1,246 @@
-# SmartFlow — SME Intelligence (CFO Brain API)
+# SmartFlow — Multi-Agent AI for Cash-Flow Forecasting & Credit Intelligence (Indian SMEs)
 
-**SmartFlow** is an agentic AI backend that gives any product a **“CFO brain” for Small & Medium Businesses (SMEs)**.  
-It exposes a set of REST APIs that provide:
+SmartFlow is an **AI governance + intelligence layer for Indian SME credit underwriting**.  
+It ingests **bank statements**, **Tally/Zoho exports**, and **GST filings** to generate:
 
-- **Cash-flow forecasting**
-- **Credit intelligence**
-- **Working-capital optimization**
-- **Basic compliance checks**
+✅ **30/60/90-day cash-flow forecasts + cash runway**  
+✅ **Lightweight credit score + PD band**  
+✅ **Declarative credit policies (BLOCK/WARN/SAFE)**  
+✅ **Working-capital optimization suggestions**  
+✅ **LLM-generated credit memo + reviewer checks**  
+✅ **Audit trail + decision replay**
 
-> ✅ SmartFlow is **not a lender**.  
-> It is *lending decision support infrastructure* — it analyzes SME financial data and returns cash-flow + credit risk intelligence that banks, fintechs, neobanks, or DeFi protocols can plug into their workflows.
-
----
-
-## ✨ Features
-
-### ✅ REST APIs
-- **`POST /forecast`** – Predict **30/60/90-day cash flow** from transaction history.
-- **`POST /credit-score`** – Score SME creditworthiness with **PD estimate + explanation**.
-- **`POST /optimize`** – Recommend invoices to collect + payables to delay to improve working capital.
-- **`POST /compliance-check`** – Simple compliance risk checks (GST/tax signals).
-
-### 🤖 RAG-backed Agents
-SmartFlow uses retrieval-augmented agents that can read and reason over:
-- Tally exports
-- Bank transaction CSVs
-- GST / compliance PDFs
-
-Vector database used: **FAISS**.
-
-### 🛡️ Hallucination-safe System
-LLM outputs are validated against retrieved documents.
-When uncertain, SmartFlow falls back to **classical ML models**:
-- **Prophet** for time series forecasting
-- **XGBoost** for credit scoring
-
-Includes a **hallucination detector** using similarity scoring between:
-- retrieved documents  
-- generated response  
-
-### 📊 MLOps-ready
-Includes production-friendly tooling:
-- **MLflow** (tracking, metrics, model registry)
-- **Prometheus metrics**
-  - latency
-  - error rate
-  - hallucination rate
+> SmartFlow is **not a lender**. It is a credit intelligence backend that helps lenders/fintechs make faster and more consistent SME credit decisions.
 
 ---
 
-## 🧱 Architecture Overview
+## Table of Contents
 
-```txt
-Client (fintech / tool / neobank / DeFi)
-        │
-        ▼
-FastAPI REST API
-  - POST /forecast
-  - POST /credit-score
-  - POST /optimize
-  - POST /compliance-check
-        │
-        ▼
-Agent Orchestrator (ReAct-style)
-  - Forecast Agent
-  - Credit Agent
-  - Optimize Agent
-  - Compliance Agent
-        │
-        ▼
-AI & ML Layer
-  - LLM (Mistral / LLaMA) + LoRA adapter
-  - RAG: sentence-transformers embeddings + FAISS vector DB
-  - Classical ML fallback: Prophet (forecast), XGBoost (credit)
-  - Hallucination detector (similarity vs retrieved docs)
-        │
-        ▼
-Data & MLOps Layer
-  - PostgreSQL / SQLite (SME data, logs, audit trail)
-  - FAISS Index (vector search over documents)
-  - MLflow (model registry + tracking)
-  - Prometheus metrics (latency, error, hallucination)
+- [Why SmartFlow](#why-smartflow)
+- [Key Features](#key-features)
+- [System Architecture](#system-architecture)
+- [Agent Pipeline](#agent-pipeline)
+- [Tech Stack](#tech-stack)
+- [API (MVP)](#api-mvp)
+- [Quickstart](#quickstart)
+- [Configuration](#configuration)
+- [Roadmap](#roadmap)
+- [References / Inspiration Papers](#references--inspiration-papers)
+- [License](#license)
+
+---
+
+## Why SmartFlow
+
+Indian SME underwriting is often messy because data is fragmented:
+
+- Bank statement ≠ ledger revenue ≠ GST turnover
+- Cash flow is volatile and seasonal
+- Policy checks are manual and inconsistent
+
+SmartFlow solves this by acting as a **governed, auditable multi-agent AI pipeline** that produces:
+
+- reliable cash-flow intelligence
+- risk signals
+- transparent policy evaluation
+- a lender-ready credit memo
+
+---
+
+## Key Features
+
+### 1) Data ingestion
+
+Upload:
+
+- SME **bank statements** (CSV)
+- **Ledger exports** (Tally/Zoho CSV/XLSX)
+- **GST summary files** (JSON/PDF → extracted)
+
+Output normalized tables:
+
+- `cash_flows_daily`
+- `features_credit`
+- `gst_summary`
+
+---
+
+### 2) Cash-flow forecasting
+
+- Aggregates inflows/outflows daily/weekly
+- Uses **Prophet** to forecast:
+  - 30 / 60 / 90-day cash flows
+  - cash runway estimates
+
+---
+
+### 3) Credit scoring & PD banding
+
+Computes underwriting features:
+
+- Avg monthly inflow + volatility
+- Negative cash months / overdrafts
+- Customer concentration (top-N)
+- GST consistency (filing delays, gaps)
+
+Outputs:
+
+- Score (0–100)
+- PD band: `LOW | MEDIUM | HIGH`
+- Red flags:
+  - sharp drops in revenue
+  - high concentration
+  - missed GST periods
+
+---
+
+### 4) Policy engine & risk guards (declarative)
+
+Policies are defined in JSON/YAML, e.g.:
+max_loan_multiple_of_inflow: 3
+min_runway_days_after_emi: 30
+reject_if_consecutive_gst_missed: 2
+
+```yaml
+
+
+
+                    +----------------------+
+                    |  Frontend (React)    |
+                    | upload + dashboard   |
+                    +----------+-----------+
+                               |
+                               v
++------------------+     +---------------------+
+|  Bank CSV / GST  | --> |   FastAPI Backend   |
+|  Ledger Exports  |     | ingest + case mgmt  |
++------------------+     +----------+----------+
+                                   |
+                                   v
+                +----------------------------------+
+                | Multi-Agent Pipeline (SmartFlow) |
+                +----------------------------------+
+                | Data Agent        -> normalized  |
+                | Risk Agent        -> score/PD    |
+                | Policy Agent      -> SAFE/WARN   |
+                | Optimization Agent-> actions     |
+                | Narrative Agent   -> memo        |
+                | Reviewer Agent    -> critique    |
+                +------------------+---------------+
+                                   |
+                                   v
+                         +------------------+
+                         | Postgres/SQLite  |
+                         | logs + audit     |
+                         +------------------+
+
 ```
 
+## Agent Pipeline
 
-🧰 Tech Stack
-Backend
+### 🧩 Agents
 
-FastAPI
+- **Data Agent**
+  - Cleans & joins bank, ledger, and GST data
+  - Outputs normalized datasets
 
-Uvicorn
+- **Risk Agent**
+  - Uses forecast results + credit features
+  - Produces risk metrics, credit score, and PD band
 
-Pydantic
+- **Policy Agent**
+  - Executes declarative underwriting rules
+  - Aggregates recommendations into `SAFE / WARN / BLOCK`
 
-LLM / Agents
+- **Optimization Agent**
+  - Suggests invoice collections & payable delays
+  - Estimates liquidity impact
 
-Mistral / LLaMA family (Hugging Face or API)
+- **Narrative Agent**
+  - Generates lender-style memo using structured facts
 
-LoRA adapters (PEFT)
+- **Reviewer Agent**
+  - Validates memo vs facts (numbers, flags)
+  - Reports contradictions / missing logic
 
-ReAct-style agent orchestration
+---
 
-RAG
+## Tech Stack
 
-sentence-transformers/all-MiniLM-L6-v2
+### Backend
+- Python 3.10+
+- FastAPI + Uvicorn/Gunicorn
+- Pandas / NumPy
+- Prophet (forecasting)
+- XGBoost (scoring)
+- SQLAlchemy
+- PostgreSQL (prod) / SQLite (dev)
+- Optional: FAISS + SentenceTransformers (RAG)
+- Optional: MLflow, Prometheus client
 
-FAISS vector database
+### Frontend
+- React / Next.js
+- Charts: Recharts / Chart.js
+- Case dashboard: SAFE/WARN/BLOCK flags
+- Memo editing + export to PDF
 
-Classical ML
+### Infra
+- Docker + Docker Compose
+- Poetry or pip/venv
 
-Prophet (cash-flow forecast)
 
-XGBoost (credit scoring)
 
-Data
+## API (MVP)
 
-PostgreSQL (prod)
+> Base URL: `http://localhost:8000`
 
-SQLite (dev)
+| Endpoint | Method | Description |
+|---------|--------|-------------|
+| `/ingest` | POST | Upload bank, ledger, GST files → returns `case_id` |
+| `/case/{case_id}/summary` | GET | Structured summary (features, scores, flags) |
+| `/case/{case_id}/forecast` | GET | Cash-flow forecast outputs |
+| `/case/{case_id}/memo` | GET | Generated credit memo |
+| `/case/{case_id}/policy` | GET | Policy evaluation results |
+| `/case/{case_id}/audit` | GET | Decision logs + overrides |
 
-MLOps + Monitoring
+### Upload Example
 
-MLflow
+`POST /ingest`
 
-Prometheus client
+```json
+{
+  "case_id": "uuid-1234",
+  "status": "ingested"
+}
 
-Infra
+```
 
-Docker
+## Roadmap
 
-Docker Compose
+- [ ] Better SME cash-flow decomposition (seasonality, vendor cycles)
+- [ ] Stronger PD model benchmarking (Indian SME datasets)
+- [ ] Explainable model outputs (feature attribution)
+- [ ] Full RAG support over PDFs (GST returns / bank notes)
+- [ ] Multi-tenant SaaS mode (per-lender policies)
+- [ ] Automated bias checks + HITL review console
+- [ ] Production observability (traces + drift monitoring)
 
-🚀 Getting Started
-1) Clone Repo
-git clone https://github.com/yashwanthjack/smartflow-sme-intelligence.git
-cd smartflow-sme-intelligence
+---
 
-2) Create Virtual Env
-python -m venv venv
-source venv/bin/activate   # Linux/macOS
-venv\Scripts\activate      # Windows
+## References / Inspiration Papers
 
-3) Install Dependencies
-pip install -r requirements.txt
+SmartFlow’s architecture draws concepts from recent agentic finance research:
 
-4) Run API Server
-uvicorn app.main:app --reload
+1) **FINCON — Synthesized LLM Multi-Agent System with Conceptual Verbal Reinforcement**
+   - manager–analyst hierarchy  
+   - risk-control / tail-risk adaptation  
 
+2) **MASFIN — Multi-Agent System for Decomposed Financial Reasoning and Forecasting**
+   - staged pipelines + HITL  
+   - bias-aware evaluation  
 
-API will be available at:
+3) **JPMorgan EMNLP Industry Track — Multi-Agent Framework for Quantitative Finance**
+   - specialized agent roles  
+   - code-executing + reflection agents  
 
-http://127.0.0.1:8000
-
-Swagger docs: http://127.0.0.1:8000/docs
-
-### 📌 API Endpoints
-✅ Forecast
-
-POST /forecast
-Predict cash flow for 30/60/90 days using transaction history.
-
-✅ Credit Score
-
-POST /credit-score
-Returns:
-
-credit risk score
-
-PD probability
-
-explanation (RAG evidence-backed)
-
-✅ Optimize Working Capital
-
-POST /optimize
-Returns recommendations to:
-
-collect invoices faster
-
-delay payables smartly
-
-optimize cash cycle
-
-✅ Compliance Check
-
-POST /compliance-check
-Runs simple checks for:
-
-GST/tax risk flags
-
-missing payments
-
-compliance anomalies
-
-🧠 How It Works
-
-User uploads SME data (bank CSV / Tally exports / GST PDFs)
-
-Documents are chunked + embedded (sentence-transformers)
-
-Stored in FAISS for semantic retrieval
-
-Agent selects tools + retrieves relevant evidence
-
-LLM produces response using retrieved evidence
-
-Hallucination detection validates output
-
-If uncertain → fallback ML model response is returned
-
-🤝 Contributing
-
-Contributions are welcome — this project is a strong playground for:
-
-LLMs + RAG
-
-Agentic AI
-
-MLOps / production ML
-
-Financial data modeling
-
-Ideas for Contributions
-
-New optimization strategies and rules
-
-Better feature engineering for credit scoring
-
-Support additional vector DBs (Qdrant, Pinecone, etc.)
-
-Dashboards and monitoring improvements
-
-Tutorials and example client apps
-
-📫 Contact
-
-Maintainer: Yashwanth R
-📩 Email: yashwanthrajeshkumar@gmail.com
-
-🐙 GitHub: @yashwanthjack
-
-If you are using SmartFlow in a project (fintech app, hackathon, research), feel free to open an issue or PR — would love to see how you’re extending it 🚀
+> These works are conceptual references; SmartFlow implements a practical SME underwriting subset.
