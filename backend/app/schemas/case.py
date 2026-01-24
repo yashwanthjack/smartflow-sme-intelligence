@@ -1,0 +1,1 @@
+# Case request/response schemas
