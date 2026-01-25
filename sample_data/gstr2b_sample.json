@@ -1,0 +1,148 @@
+{
+    "gstin": "33AABCU9603R1ZM",
+    "fp": "072025",
+    "docdata": {
+        "b2b": [
+            {
+                "ctin": "33AABCV1234M1ZK",
+                "trdnm": "Mehta Fabrics Pvt Ltd",
+                "inv": [
+                    {
+                        "inum": "MF-2025-087",
+                        "idt": "03-07-2025",
+                        "val": 106200,
+                        "pos": "33",
+                        "rev": "N",
+                        "typ": "R",
+                        "itms": [
+                            {
+                                "num": 1,
+                                "itm_det": {
+                                    "txval": 90000,
+                                    "rt": 18,
+                                    "camt": 8100,
+                                    "samt": 8100,
+                                    "csamt": 0
+                                }
+                            }
+                        ],
+                        "srctyp": "e-Invoice",
+                        "irn": "abc123def456ghi789jkl012mno345pqr678stu901vwx234",
+                        "irngendate": "03-07-2025"
+                    },
+                    {
+                        "inum": "MF-2025-102",
+                        "idt": "15-07-2025",
+                        "val": 177000,
+                        "pos": "33",
+                        "rev": "N",
+                        "typ": "R",
+                        "itms": [
+                            {
+                                "num": 1,
+                                "itm_det": {
+                                    "txval": 150000,
+                                    "rt": 18,
+                                    "camt": 13500,
+                                    "samt": 13500,
+                                    "csamt": 0
+                                }
+                            }
+                        ],
+                        "srctyp": "e-Invoice",
+                        "irn": "xyz789abc012def345ghi678jkl901mno234pqr567stu890",
+                        "irngendate": "15-07-2025"
+                    }
+                ]
+            },
+            {
+                "ctin": "33AABCP5678Q1ZN",
+                "trdnm": "Patel Threads Industries",
+                "inv": [
+                    {
+                        "inum": "PT-INV-4521",
+                        "idt": "08-07-2025",
+                        "val": 66080,
+                        "pos": "33",
+                        "rev": "N",
+                        "typ": "R",
+                        "itms": [
+                            {
+                                "num": 1,
+                                "itm_det": {
+                                    "txval": 56000,
+                                    "rt": 18,
+                                    "camt": 5040,
+                                    "samt": 5040,
+                                    "csamt": 0
+                                }
+                            }
+                        ],
+                        "srctyp": "e-Invoice",
+                        "irn": "pqr901stu234vwx567yza890bcd123efg456hij789klm012",
+                        "irngendate": "08-07-2025"
+                    }
+                ]
+            },
+            {
+                "ctin": "29AABCS9012W1ZT",
+                "trdnm": "Sharma Dyes & Chemicals",
+                "inv": [
+                    {
+                        "inum": "SD-2025-0156",
+                        "idt": "20-07-2025",
+                        "val": 47200,
+                        "pos": "29",
+                        "rev": "N",
+                        "typ": "R",
+                        "itms": [
+                            {
+                                "num": 1,
+                                "itm_det": {
+                                    "txval": 40000,
+                                    "rt": 18,
+                                    "iamt": 7200,
+                                    "csamt": 0
+                                }
+                            }
+                        ],
+                        "srctyp": "e-Invoice",
+                        "irn": "mno567pqr890stu123vwx456yza789bcd012efg345hij678",
+                        "irngendate": "20-07-2025"
+                    }
+                ]
+            },
+            {
+                "ctin": "33AABCQ3456R1ZJ",
+                "trdnm": "Quality Fabrics Ltd",
+                "inv": [
+                    {
+                        "inum": "QF-2025-789",
+                        "idt": "25-07-2025",
+                        "val": 153400,
+                        "pos": "33",
+                        "rev": "N",
+                        "typ": "R",
+                        "itms": [
+                            {
+                                "num": 1,
+                                "itm_det": {
+                                    "txval": 130000,
+                                    "rt": 18,
+                                    "camt": 11700,
+                                    "samt": 11700,
+                                    "csamt": 0
+                                }
+                            }
+                        ],
+                        "srctyp": "e-Invoice",
+                        "irn": "klm234nop567qrs890tuv123wxy456zab789cde012fgh345",
+                        "irngendate": "25-07-2025"
+                    }
+                ]
+            }
+        ]
+    },
+    "chksum": "ABCDEF1234567890",
+    "fc": "Y"
+}

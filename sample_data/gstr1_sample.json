@@ -1,0 +1,156 @@
+{
+    "gstin": "33AABCU9603R1ZM",
+    "fp": "072025",
+    "gt": 2850000,
+    "cur_gt": 2850000,
+    "b2b": [
+        {
+            "ctin": "33AABCT1332L1ZZ",
+            "inv": [
+                {
+                    "inum": "INV-2025-001",
+                    "idt": "05-07-2025",
+                    "val": 118000,
+                    "pos": "33",
+                    "rchrg": "N",
+                    "inv_typ": "R",
+                    "itms": [
+                        {
+                            "num": 1,
+                            "itm_det": {
+                                "txval": 100000,
+                                "rt": 18,
+                                "camt": 9000,
+                                "samt": 9000,
+                                "csamt": 0
+                            }
+                        }
+                    ]
+                },
+                {
+                    "inum": "INV-2025-002",
+                    "idt": "12-07-2025",
+                    "val": 59000,
+                    "pos": "33",
+                    "rchrg": "N",
+                    "inv_typ": "R",
+                    "itms": [
+                        {
+                            "num": 1,
+                            "itm_det": {
+                                "txval": 50000,
+                                "rt": 18,
+                                "camt": 4500,
+                                "samt": 4500,
+                                "csamt": 0
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "ctin": "33AABCM5678N1ZP",
+            "inv": [
+                {
+                    "inum": "INV-2025-003",
+                    "idt": "18-07-2025",
+                    "val": 236000,
+                    "pos": "33",
+                    "rchrg": "N",
+                    "inv_typ": "R",
+                    "itms": [
+                        {
+                            "num": 1,
+                            "itm_det": {
+                                "txval": 200000,
+                                "rt": 18,
+                                "camt": 18000,
+                                "samt": 18000,
+                                "csamt": 0
+                            }
+                        }
+                    ]
+                }
+            ]
+        },
+        {
+            "ctin": "29AABCK9999P1ZH",
+            "inv": [
+                {
+                    "inum": "INV-2025-004",
+                    "idt": "25-07-2025",
+                    "val": 354000,
+                    "pos": "29",
+                    "rchrg": "N",
+                    "inv_typ": "R",
+                    "itms": [
+                        {
+                            "num": 1,
+                            "itm_det": {
+                                "txval": 300000,
+                                "rt": 18,
+                                "iamt": 54000,
+                                "csamt": 0
+                            }
+                        }
+                    ]
+                }
+            ]
+        }
+    ],
+    "b2cs": [
+        {
+            "sply_ty": "INTRA",
+            "pos": "33",
+            "typ": "OE",
+            "txval": 150000,
+            "rt": 18,
+            "camt": 13500,
+            "samt": 13500,
+            "csamt": 0
+        },
+        {
+            "sply_ty": "INTRA",
+            "pos": "33",
+            "typ": "OE",
+            "txval": 85000,
+            "rt": 12,
+            "camt": 5100,
+            "samt": 5100,
+            "csamt": 0
+        }
+    ],
+    "hsn": {
+        "data": [
+            {
+                "hsn_sc": "6206",
+                "desc": "Textile Fabrics",
+                "uqc": "MTR",
+                "qty": 5000,
+                "txval": 650000,
+                "iamt": 54000,
+                "camt": 31500,
+                "samt": 31500,
+                "csamt": 0
+            }
+        ]
+    },
+    "doc_issue": {
+        "doc_det": [
+            {
+                "doc_num": 1,
+                "docs": [
+                    {
+                        "num": 1,
+                        "from": "INV-2025-001",
+                        "to": "INV-2025-010",
+                        "totnum": 10,
+                        "cancel": 0,
+                        "net_issue": 10
+                    }
+                ]
+            }
+        ]
+    }
+}

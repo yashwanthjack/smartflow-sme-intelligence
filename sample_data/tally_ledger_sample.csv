@@ -1,0 +1,100 @@
+Date,Voucher Type,Voucher No,Particulars,Debit,Credit
+01/07/2025,Sales,S-001,ABC Textiles - Invoice #1001,,85000
+01/07/2025,Receipt,R-001,ABC Textiles - Payment Received,85000,
+02/07/2025,Purchase,P-001,Mehta Fabrics - Raw Material,45000,
+03/07/2025,Sales,S-002,Krishna Retail - Invoice #1002,,62000
+04/07/2025,Expense,EXP-001,Office Rent - July,25000,
+05/07/2025,Sales,S-003,Gupta Sarees - Invoice #1003,,95000
+06/07/2025,Payment,PAY-001,Mehta Fabrics - Payment Made,,45000
+07/07/2025,Receipt,R-002,Krishna Retail - Part Payment,30000,
+08/07/2025,Purchase,P-002,Patel Threads - Supplies,28000,
+09/07/2025,Sales,S-004,New Fashion Store - Invoice #1004,,42000
+10/07/2025,Expense,EXP-002,Electricity Bill - July,8500,
+11/07/2025,Sales,S-005,Royal Garments - Invoice #1005,,78000
+12/07/2025,Receipt,R-003,Gupta Sarees - Full Payment,95000,
+13/07/2025,Purchase,P-003,Sharma Dyes - Colors,18000,
+14/07/2025,Sales,S-006,City Fashions - Invoice #1006,,55000
+15/07/2025,Payment,PAY-002,Patel Threads - Payment,,28000
+16/07/2025,Expense,EXP-003,Staff Salary - July,125000,
+17/07/2025,Sales,S-007,Metro Textiles - Invoice #1007,,120000
+18/07/2025,Receipt,R-004,New Fashion Store - Payment,42000,
+19/07/2025,Purchase,P-004,Quality Fabrics - Silk,65000,
+20/07/2025,Sales,S-008,Elegant Wear - Invoice #1008,,38000
+21/07/2025,Expense,EXP-004,Internet & Phone,4500,
+22/07/2025,Receipt,R-005,Royal Garments - Part Payment,40000,
+23/07/2025,Sales,S-009,Fashion Hub - Invoice #1009,,92000
+24/07/2025,Payment,PAY-003,Sharma Dyes - Payment,,18000
+25/07/2025,Purchase,P-005,Mumbai Threads - Cotton,52000,
+26/07/2025,Sales,S-010,Trendy Collections - Invoice #1010,,67000
+27/07/2025,Receipt,R-006,City Fashions - Payment,55000,
+28/07/2025,Expense,EXP-005,Vehicle Fuel,12000,
+29/07/2025,Sales,S-011,Style Point - Invoice #1011,,48000
+30/07/2025,Payment,PAY-004,Quality Fabrics - Part Payment,,35000
+31/07/2025,Expense,EXP-006,GST Payment - July,45000,
+01/08/2025,Sales,S-012,ABC Textiles - Invoice #1012,,75000
+02/08/2025,Receipt,R-007,Metro Textiles - Full Payment,120000,
+03/08/2025,Purchase,P-006,Mehta Fabrics - August Order,55000,
+04/08/2025,Sales,S-013,Krishna Retail - Invoice #1013,,88000
+05/08/2025,Expense,EXP-007,Office Supplies,8000,
+06/08/2025,Receipt,R-008,Elegant Wear - Payment,38000,
+07/08/2025,Sales,S-014,Gupta Sarees - Invoice #1014,,110000
+08/08/2025,Payment,PAY-005,Mumbai Threads - Payment,,52000
+09/08/2025,Purchase,P-007,Patel Threads - Bulk Order,42000,
+10/08/2025,Sales,S-015,New Fashion Store - Invoice #1015,,56000
+11/08/2025,Receipt,R-009,Fashion Hub - Part Payment,50000,
+12/08/2025,Expense,EXP-008,Maintenance & Repairs,15000,
+13/08/2025,Sales,S-016,Royal Garments - Invoice #1016,,95000
+14/08/2025,Receipt,R-010,Royal Garments - Previous Due,38000,
+15/08/2025,Payment,PAY-006,Quality Fabrics - Balance,,30000
+16/08/2025,Expense,EXP-009,Staff Salary - August,125000,
+17/08/2025,Sales,S-017,City Fashions - Invoice #1017,,72000
+18/08/2025,Purchase,P-008,Sharma Dyes - Monthly Stock,22000,
+19/08/2025,Receipt,R-011,Trendy Collections - Payment,67000,
+20/08/2025,Sales,S-018,Metro Textiles - Invoice #1018,,135000
+21/08/2025,Expense,EXP-010,Insurance Premium,18000,
+22/08/2025,Receipt,R-012,Style Point - Payment,48000,
+23/08/2025,Sales,S-019,Elegant Wear - Invoice #1019,,45000
+24/08/2025,Payment,PAY-007,Mehta Fabrics - Payment,,55000
+25/08/2025,Purchase,P-009,Quality Fabrics - Premium,78000,
+26/08/2025,Sales,S-020,Fashion Hub - Invoice #1020,,82000
+27/08/2025,Receipt,R-013,ABC Textiles - Payment,75000,
+28/08/2025,Expense,EXP-011,Advertising,25000,
+29/08/2025,Sales,S-021,Krishna Retail - Invoice #1021,,98000
+30/08/2025,Payment,PAY-008,Patel Threads - Payment,,42000
+31/08/2025,Expense,EXP-012,GST Payment - August,52000,
+01/09/2025,Sales,S-022,Gupta Sarees - Invoice #1022,,125000
+02/09/2025,Receipt,R-014,Gupta Sarees - Previous Due,110000,
+03/09/2025,Purchase,P-010,Mumbai Threads - Festival Stock,85000,
+04/09/2025,Sales,S-023,New Fashion Store - Invoice #1023,,68000
+05/09/2025,Expense,EXP-013,Office Rent - September,25000,
+06/09/2025,Receipt,R-015,New Fashion Store - Payment,56000,
+07/09/2025,Sales,S-024,Royal Garments - Invoice #1024,,145000
+08/09/2025,Payment,PAY-009,Sharma Dyes - Payment,,22000
+09/09/2025,Purchase,P-011,Patel Threads - Urgent Order,35000,
+10/09/2025,Sales,S-025,City Fashions - Invoice #1025,,88000
+11/09/2025,Receipt,R-016,Royal Garments - Payment,95000,
+12/09/2025,Expense,EXP-014,Electricity Bill - September,9500,
+13/09/2025,Sales,S-026,Trendy Collections - Invoice #1026,,76000
+14/09/2025,Receipt,R-017,Metro Textiles - Payment,135000,
+15/09/2025,Payment,PAY-010,Quality Fabrics - Part Payment,,40000
+16/09/2025,Expense,EXP-015,Staff Salary - September,130000,
+17/09/2025,Sales,S-027,Style Point - Invoice #1027,,52000
+18/09/2025,Purchase,P-012,Mehta Fabrics - Premium Range,68000,
+19/09/2025,Receipt,R-018,City Fashions - Payment,72000,
+20/09/2025,Sales,S-028,Elegant Wear - Invoice #1028,,48000
+21/09/2025,Expense,EXP-016,Vehicle Maintenance,8000,
+22/09/2025,Receipt,R-019,Fashion Hub - Balance,32000,
+23/09/2025,Sales,S-029,ABC Textiles - Invoice #1029,,92000
+24/09/2025,Payment,PAY-011,Mumbai Threads - Payment,,85000
+25/09/2025,Purchase,P-013,Sharma Dyes - Festive Colors,28000,
+26/09/2025,Sales,S-030,Fashion Hub - Invoice #1030,,105000
+27/09/2025,Receipt,R-020,Fashion Hub - Payment,82000,
+28/09/2025,Expense,EXP-017,Courier & Logistics,15000,
+29/09/2025,Sales,S-031,Krishna Retail - Invoice #1031,,78000
+30/09/2025,Payment,PAY-012,Patel Threads - Balance,,35000
+30/09/2025,Expense,EXP-018,GST Payment - September,58000,
+01/10/2025,Sales,S-032,Metro Textiles - Invoice #1032,,155000
+02/10/2025,Receipt,R-021,Trendy Collections - Payment,76000,
+03/10/2025,Purchase,P-014,Quality Fabrics - Diwali Stock,95000,
+04/10/2025,Sales,S-033,Gupta Sarees - Invoice #1033,,180000
+05/10/2025,Expense,EXP-019,Diwali Bonus - Staff,50000,
