@@ -1,0 +1,136 @@
+{
+    "gstin": "33AABCU9603R1ZM",
+    "ret_period": "072025",
+    "sup_details": {
+        "osup_det": {
+            "txval": 885000,
+            "iamt": 54000,
+            "camt": 69600,
+            "samt": 69600,
+            "csamt": 0
+        },
+        "osup_zero": {
+            "txval": 0,
+            "iamt": 0,
+            "camt": 0,
+            "samt": 0,
+            "csamt": 0
+        },
+        "osup_nil_exmp": {
+            "txval": 25000
+        },
+        "isup_rev": {
+            "txval": 0,
+            "iamt": 0,
+            "camt": 0,
+            "samt": 0,
+            "csamt": 0
+        },
+        "osup_nongst": {
+            "txval": 0
+        }
+    },
+    "itc_elg": {
+        "itc_avl": [
+            {
+                "ty": "IMPG",
+                "iamt": 0,
+                "camt": 0,
+                "samt": 0,
+                "csamt": 0
+            },
+            {
+                "ty": "IMPS",
+                "iamt": 0,
+                "camt": 0,
+                "samt": 0,
+                "csamt": 0
+            },
+            {
+                "ty": "ISRC",
+                "iamt": 0,
+                "camt": 0,
+                "samt": 0,
+                "csamt": 0
+            },
+            {
+                "ty": "ISD",
+                "iamt": 0,
+                "camt": 0,
+                "samt": 0,
+                "csamt": 0
+            },
+            {
+                "ty": "OTH",
+                "iamt": 12000,
+                "camt": 45000,
+                "samt": 45000,
+                "csamt": 0
+            }
+        ],
+        "itc_rev": [
+            {
+                "ty": "RUL",
+                "iamt": 0,
+                "camt": 0,
+                "samt": 0,
+                "csamt": 0
+            },
+            {
+                "ty": "OTH",
+                "iamt": 0,
+                "camt": 0,
+                "samt": 0,
+                "csamt": 0
+            }
+        ],
+        "itc_net": {
+            "iamt": 12000,
+            "camt": 45000,
+            "samt": 45000,
+            "csamt": 0
+        },
+        "itc_inelg": [
+            {
+                "ty": "RUL",
+                "iamt": 0,
+                "camt": 0,
+                "samt": 0,
+                "csamt": 0
+            },
+            {
+                "ty": "OTH",
+                "iamt": 0,
+                "camt": 0,
+                "samt": 0,
+                "csamt": 0
+            }
+        ]
+    },
+    "intr_ltfee": {
+        "intr_details": {
+            "iamt": 0,
+            "camt": 0,
+            "samt": 0,
+            "csamt": 0
+        },
+        "ltfee_details": {
+            "camt": 0,
+            "samt": 0
+        }
+    },
+    "inward_sup": {
+        "isup_details": [
+            {
+                "ty": "GST",
+                "inter": 250000,
+                "intra": 480000
+            },
+            {
+                "ty": "NONGST",
+                "inter": 0,
+                "intra": 0
+            }
+        ]
+    }
+}
