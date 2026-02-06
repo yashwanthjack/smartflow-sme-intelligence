@@ -24,9 +24,29 @@ class IngestionService:
         transactions = self.bank_parser.parse(file_path)
         print(f"Parsed {len(transactions)} transactions")
         
-        # Step 2: Save loop (we will write this next)
+        # Step 2: Save loop
+        saved_count = 0
         for txn in transactions:
-            pass  # placeholder
+            try:
+                # Convert date string to python date object
+                ledger_date = date_parser.parse(txn['date'], dayfirst=True).date()
+
+                entry = LedgerEntry(
+                    entity_id=entity_id,
+                    ledger_date=ledger_date,
+                    amount=txn['amount'],
+                    description=txn['description'],
+                    source_type='bank_statement',
+                    source_record_id=txn.get('txn_id'), # Some banks have transaction IDs
+                    category=txn.get('category', 'uncategorized')
+                )
+                self.db.add(entry)
+                saved_count += 1
+            except Exception as e:
+                print(f"Skipping row: {e}")
+        
+        self.db.commit()
+        return saved_count
 
     def ingest_ledger(self, file_path: str, entity_id: str):
         """Parse Tally/Zoho ledger and save to DB."""
@@ -88,4 +108,4 @@ class IngestionService:
             self.db.commit()
             print("Saved GSTR-3B summary")
             return 1
-        return 0
+        return 0   
