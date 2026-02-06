@@ -115,4 +115,4 @@ SmartFlow is designed with privacy first.
 
 ---
 
-**Built with ❤️ by [Your Name]**
+**Built with ❤️ by YASH**
