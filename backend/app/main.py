@@ -25,6 +25,12 @@ async def lifespan(app: FastAPI):
     # Startup: Create all tables
     Base.metadata.create_all(bind=engine)
     print("✅ Database tables created/verified")
+    
+    # Start Agent Workforce background simulation
+    # from app.services.agent_workforce import simulate_workforce
+    # import asyncio
+    # asyncio.create_task(simulate_workforce())
+    
     yield
     # Shutdown: cleanup if needed
     print("Shutting down...")
@@ -66,7 +72,7 @@ app.include_router(organization.router, prefix="/api/org", tags=["Organization"]
 # New Routers (Phase 2)
 from app.routers import insights
 app.include_router(insights.router, prefix="/api/insights", tags=["Insights"])
-app.include_router(insights.router, prefix="/api/agents", tags=["Agents (New)"]) 
+ 
 
 from app.routers import lender_api
 app.include_router(lender_api.router, prefix="/api/lender", tags=["Lender Platform"])
@@ -79,3 +85,7 @@ app.include_router(simulation.router, prefix="/api/simulate", tags=["Simulation"
 # New Routers (Phase 8 - Real Data)
 from app.routers import metrics
 app.include_router(metrics.router, prefix="/api")
+
+# Phase 10 - Audit Trail
+from app.routers import audit
+app.include_router(audit.router, prefix="/api/audit", tags=["Audit"])

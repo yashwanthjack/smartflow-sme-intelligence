@@ -18,7 +18,7 @@ class IngestionService:
         """
         1. Parse the bank file
         2. Convert each row to a LedgerEntry
-        3. Save to database
+        3. Save to database (skip duplicates)
         """
         # Step 1: Parse
         transactions = self.bank_parser.parse(file_path)
@@ -26,10 +26,23 @@ class IngestionService:
         
         # Step 2: Save loop
         saved_count = 0
+        skipped_count = 0
         for txn in transactions:
             try:
                 # Convert date string to python date object
                 ledger_date = date_parser.parse(txn['date'], dayfirst=True).date()
+
+                # Check for duplicate
+                existing = self.db.query(LedgerEntry).filter(
+                    LedgerEntry.entity_id == entity_id,
+                    LedgerEntry.ledger_date == ledger_date,
+                    LedgerEntry.amount == txn['amount'],
+                    LedgerEntry.description == txn['description']
+                ).first()
+
+                if existing:
+                    skipped_count += 1
+                    continue
 
                 entry = LedgerEntry(
                     entity_id=entity_id,
@@ -43,9 +56,10 @@ class IngestionService:
                 self.db.add(entry)
                 saved_count += 1
             except Exception as e:
-                print(f"Skipping row: {e}")
+                print(f"Error processing row: {e}")
         
         self.db.commit()
+        print(f"Saved {saved_count} new transactions, skipped {skipped_count} duplicates")
         return saved_count
 
     def ingest_ledger(self, file_path: str, entity_id: str):
@@ -54,6 +68,7 @@ class IngestionService:
         print(f"Parsed {len(entries)} ledger entries")
         
         saved_count = 0
+        skipped_count = 0
         for row in entries:
             try:
                 txn_date = date_parser.parse(row['date'], dayfirst=True).date()
@@ -67,11 +82,25 @@ class IngestionService:
                 
                 if amt == 0: continue
                 
+                description = row['particulars']
+
+                # Check for duplicate
+                existing = self.db.query(LedgerEntry).filter(
+                    LedgerEntry.entity_id == entity_id,
+                    LedgerEntry.ledger_date == txn_date,
+                    LedgerEntry.amount == amt,
+                    LedgerEntry.description == description
+                ).first()
+
+                if existing:
+                    skipped_count += 1
+                    continue
+                
                 entry = LedgerEntry(
                     entity_id=entity_id,
                     ledger_date=txn_date,
                     amount=amt,
-                    description=row['particulars'],
+                    description=description,
                     source_type='tally',
                     source_record_id=row.get('voucher_no'),
                     category=row.get('voucher_type', 'uncategorized')
@@ -80,11 +109,12 @@ class IngestionService:
                 self.db.add(entry)
                 saved_count += 1
             except Exception as e:
-                print(f"Skipping ledger row: {e}")
+                 print(f"Error processing ledger row: {e}")
         
         self.db.commit()
-        print(f"Saved {saved_count} ledger entries!")
+        print(f"Saved {saved_count} ledger entries, skipped {skipped_count} duplicates")
         return saved_count
+
     def ingest_gst(self, file_path: str, entity_id: str):
         """Parse GST file and save to DB."""
         data = self.gst_parser.parse(file_path)
@@ -94,7 +124,7 @@ class IngestionService:
             p_end = p_start  # Simplified
 
             summary = GSTSummary(
-                case_id=entity_id,  # Map entity_id to case_id
+                entity_id=entity_id,  # Fixed: case_id -> entity_id
                 return_type='GSTR-3B',
                 period=data['period'],
                 period_start=p_start,

@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, extract
 from typing import List, Optional, Dict, Any
 from datetime import date, timedelta, datetime
+import uuid
 
 from app.db.database import SessionLocal
 from app.models.entity import Entity
@@ -12,6 +13,8 @@ from app.models.invoice import Invoice
 from app.models.counterparty import Counterparty
 from app.services.forecasting_service import ForecastingService
 from app.services.scoring_service import ScoringService
+from app.auth import get_current_active_user
+from app.models.user import User
 
 router = APIRouter()
 
@@ -30,25 +33,35 @@ def get_db():
 # ============================================================================
 
 @router.get("/entities")
-async def list_entities(db: Session = Depends(get_db)):
-    """List all entities (for multi-tenant selection)."""
-    entities = db.query(Entity).all()
+async def list_entities(
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """List entities accessible to the current user (RBAC enforced)."""
+    entity = db.query(Entity).filter(Entity.id == current_user.entity_id).first()
+    if not entity:
+        return []
     return [
         {
-            "id": e.id,
-            "name": e.name,
-            "gstin": e.gstin,
-            "industry": e.industry,
-            "city": e.city,
-            "state": e.state
+            "id": entity.id,
+            "name": entity.name,
+            "gstin": entity.gstin,
+            "industry": entity.industry,
+            "city": entity.city,
+            "state": entity.state
         }
-        for e in entities
     ]
 
 
 @router.get("/entities/{entity_id}")
-async def get_entity(entity_id: str, db: Session = Depends(get_db)):
-    """Get entity details."""
+async def get_entity(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get entity details (RBAC enforced — user can only access their own entity)."""
+    if current_user.entity_id != entity_id and current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Access denied")
     entity = db.query(Entity).filter(Entity.id == entity_id).first()
     if not entity:
         raise HTTPException(status_code=404, detail="Entity not found")
@@ -80,20 +93,21 @@ async def get_financial_metrics(entity_id: str, db: Session = Depends(get_db)):
     ).scalar() or 0
     
     # 2. Monthly Burn Rate (Average monthly outflow over last 6 months)
-    # SQLite compatible date grouping
-    # PostgreSQL compatible date grouping
-    expenses = db.query(
-        func.to_char(LedgerEntry.ledger_date, 'YYYY-MM').label('month'),
-        func.sum(LedgerEntry.amount).label('total')
-    ).filter(
+    # Using Python-side aggregation for SQLite/PostgreSQL compatibility
+    expense_entries = db.query(LedgerEntry).filter(
         LedgerEntry.entity_id == entity_id,
-        LedgerEntry.amount < 0, # Expenses are negative
+        LedgerEntry.amount < 0,
         LedgerEntry.ledger_date >= six_months_ago
-    ).group_by('month').all()
+    ).all()
     
-    if expenses:
-        total_expense = sum(abs(e.total) for e in expenses)
-        avg_burn_rate = total_expense / max(len(expenses), 1)
+    monthly_expenses = {}
+    for entry in expense_entries:
+        month_key = entry.ledger_date.strftime('%Y-%m')
+        monthly_expenses[month_key] = monthly_expenses.get(month_key, 0) + abs(entry.amount)
+    
+    if monthly_expenses:
+        total_expense = sum(monthly_expenses.values())
+        avg_burn_rate = total_expense / max(len(monthly_expenses), 1)
     else:
         avg_burn_rate = 0
         
@@ -121,10 +135,8 @@ async def get_dashboard_kpis(entity_id: str, db: Session = Depends(get_db)):
     """
     Unified endpoint for all Dashboard KPIs.
     Aggregates: Financial Metrics, Credit Score, and High-Level Risks.
+    Uses real ScoringService for accurate credit assessment.
     """
-    # 1. Reuse Financial Metrics Logic
-    # (Refactoring would be better, but for now we call the logic directly or helper)
-    # Let's perform the query again for simplicity and independence
     today = date.today()
     six_months_ago = today - timedelta(days=180)
     
@@ -132,15 +144,19 @@ async def get_dashboard_kpis(entity_id: str, db: Session = Depends(get_db)):
         LedgerEntry.entity_id == entity_id
     ).scalar() or 0
     
-    expenses = db.query(
-        func.sum(LedgerEntry.amount)
-    ).filter(
+    # Python-side monthly aggregation (SQLite compatible)
+    expense_entries = db.query(LedgerEntry).filter(
         LedgerEntry.entity_id == entity_id,
         LedgerEntry.amount < 0,
         LedgerEntry.ledger_date >= six_months_ago
-    ).scalar() or 0
+    ).all()
     
-    avg_burn_rate = (abs(expenses) / 6) if expenses else 0
+    monthly_expenses = {}
+    for entry in expense_entries:
+        month_key = entry.ledger_date.strftime('%Y-%m')
+        monthly_expenses[month_key] = monthly_expenses.get(month_key, 0) + abs(entry.amount)
+    
+    avg_burn_rate = (sum(monthly_expenses.values()) / max(len(monthly_expenses), 1)) if monthly_expenses else 0
     runway_months = (cash_balance / avg_burn_rate) if avg_burn_rate > 0 else 999
     if cash_balance < 0: runway_months = 0
     
@@ -149,18 +165,29 @@ async def get_dashboard_kpis(entity_id: str, db: Session = Depends(get_db)):
         LedgerEntry.ledger_date >= today.replace(day=1)
     ).scalar() or 0
 
-    # 2. Credit Score (Mocked or Basic Heuristic if Service not fully ready)
-    # In a real scenario, call ScoringService.calculate_score(entity_id)
-    # For MVP speed, we'll use a placeholder or basic calculation
-    credit_score = 750 # Default good score
-    risk_level = "Low"
-    
+    # 2. Credit Score — Use real ScoringService for accurate values
+    scoring_service = ScoringService(db)
+    score_data = scoring_service.calculate_score(entity_id)
+    credit_score = score_data.get('score', 650)
+    risk_band = score_data.get('risk_band', 'B')
+    risk_label = score_data.get('risk_label', 'Medium Risk')
+
+    # 3. Generate dynamic insights based on actual data
+    insights = []
     if runway_months < 3:
-        credit_score = 620
-        risk_level = "High"
+        insights.append(f"⚠️ Critical: Runway is only {runway_months:.1f} months. Reduce burn or accelerate collections.")
     elif runway_months < 6:
-        credit_score = 680
-        risk_level = "Medium"
+        insights.append(f"Runway at {runway_months:.1f} months. Consider diversifying revenue streams.")
+    else:
+        insights.append(f"Runway is healthy at {runway_months:.1f} months at current burn rate.")
+    
+    if net_income < 0:
+        insights.append(f"Net loss of ₹{abs(net_income):,.0f} this month. Review expense categories.")
+    else:
+        insights.append(f"Net income of ₹{net_income:,.0f} this month. Business is cash-flow positive.")
+    
+    if credit_score < 650:
+        insights.append("Credit score needs improvement. Focus on GST compliance and collection speed.")
 
     return {
         "financials": {
@@ -171,14 +198,12 @@ async def get_dashboard_kpis(entity_id: str, db: Session = Depends(get_db)):
         },
         "credit": {
             "score": credit_score,
-            "risk_level": risk_level,
-            "max_credit_limit": round(avg_burn_rate * 3, 2) # e.g. 3 months of burn
+            "risk_band": risk_band,
+            "risk_level": risk_label,
+            "max_credit_limit": round(avg_burn_rate * 3, 2),
+            "factors": score_data.get('factors', [])[:3]
         },
-        "insights": [
-             # Placeholder for AI insights, will be filled by Insights Agent later
-            "Runway is healthy at current burn rate.",
-            "Consider optimizing marketing spend." 
-        ]
+        "insights": insights
     }
 
 
@@ -325,13 +350,12 @@ async def get_ledger_entries(
     category: Optional[str] = None,
     db: Session = Depends(get_db)
 ):
-    """Get raw ledger transactions for spreadsheet view."""
+    """Get ledger transactions with pagination support."""
     query = db.query(LedgerEntry).filter(LedgerEntry.entity_id == entity_id)
     
     if category:
         query = query.filter(LedgerEntry.category == category)
         
-    # Order by date desc
     total = query.count()
     entries = query.order_by(LedgerEntry.ledger_date.desc()).offset(offset).limit(limit).all()
     
@@ -340,78 +364,77 @@ async def get_ledger_entries(
         "items": [
             {
                 "id": e.id,
-                "date": e.ledger_date.isoformat(),
+                "date": e.ledger_date.isoformat() if e.ledger_date else None,
                 "description": e.description,
                 "amount": float(e.amount),
                 "category": e.category,
-                "source": e.source_type
+                "subcategory": e.subcategory,
+                "source_type": e.source_type
             }
             for e in entries
         ]
     }
 
 
-@router.get("/entities/{entity_id}/invoices")
-async def get_invoices(
-    entity_id: str, 
-    limit: int = 50, 
-    offset: int = 0,
-    invoice_type: Optional[str] = None,
+@router.post("/entities/{entity_id}/ledger/manual")
+async def add_manual_ledger_entry(
+    entity_id: str,
+    entry_data: Dict[str, Any],
     db: Session = Depends(get_db)
 ):
-    """Get invoices (GST Data)."""
-    query = db.query(Invoice).filter(Invoice.entity_id == entity_id)
-    
-    if invoice_type:
-        query = query.filter(Invoice.invoice_type == invoice_type)
+    """Add a manual transaction to the ledger."""
+    try:
+        # Validate date
+        ledger_date = datetime.strptime(entry_data.get("date"), "%Y-%m-%d").date()
         
-    total = query.count()
-    invoices = query.order_by(Invoice.invoice_date.desc()).offset(offset).limit(limit).all()
-    
-    return {
-        "total": total,
-        "items": [
-            {
-                "id": inv.id,
-                "number": inv.invoice_number,
-                "date": inv.invoice_date.isoformat(),
-                "type": inv.invoice_type,
-                "amount": float(inv.total_amount),
-                "status": inv.status,
-                "gst_id": inv.gst_invoice_id
-            }
-            for inv in invoices
-        ]
-    }
-# ============================================================================
+        amount = float(entry_data.get("amount"))
+        if entry_data.get("type", "").lower() == "expense":
+            amount = -abs(amount)
+        else:
+            amount = abs(amount)
+            
+        new_entry = LedgerEntry(
+            id=str(uuid.uuid4()),
+            entity_id=entity_id,
+            ledger_date=ledger_date,
+            description=entry_data.get("description"),
+            amount=amount,
+            category=entry_data.get("category", "Other"),
+            subcategory=entry_data.get("subcategory"),
+            source_type="manual",
+            created_at=datetime.utcnow()
+        )
+        
+        db.add(new_entry)
+        db.commit()
+        db.refresh(new_entry)
+        
+        return {"id": new_entry.id, "message": "Transaction added successfully"}
+        
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=400, detail=str(e))
 
-@router.get("/entities/{entity_id}/ledger")
-async def get_ledger_entries(
-    entity_id: str, 
-    limit: int = 50,
-    category: Optional[str] = None,
+
+@router.delete("/entities/{entity_id}/ledger/{entry_id}")
+async def delete_ledger_entry(
+    entity_id: str,
+    entry_id: str,
     db: Session = Depends(get_db)
 ):
-    """Get recent ledger entries for an entity."""
-    query = db.query(LedgerEntry).filter(LedgerEntry.entity_id == entity_id)
+    """Delete a manual ledger entry."""
+    entry = db.query(LedgerEntry).filter(
+        LedgerEntry.id == entry_id,
+        LedgerEntry.entity_id == entity_id
+    ).first()
     
-    if category:
-        query = query.filter(LedgerEntry.category == category)
+    if not entry:
+        raise HTTPException(status_code=404, detail="Entry not found")
+        
+    db.delete(entry)
+    db.commit()
     
-    entries = query.order_by(LedgerEntry.ledger_date.desc()).limit(limit).all()
-    
-    return [
-        {
-            "id": e.id,
-            "date": e.ledger_date.isoformat() if e.ledger_date else None,
-            "amount": e.amount,
-            "category": e.category,
-            "subcategory": e.subcategory,
-            "description": e.description,
-            "source_type": e.source_type
-        }
-        for e in entries
-    ]
+    return {"message": "Transaction deleted successfully"}
 
 
 # ============================================================================
@@ -553,32 +576,43 @@ async def get_risk_score(entity_id: str, db: Session = Depends(get_db)):
     score_data = service.calculate_score(entity_id)
     
     # Add PD (Probability of Default) band based on score
-    credit_score = score_data.get("credit_score", 650)
+    # Fix: Service returns 'score', not 'credit_score'
+    credit_score = score_data.get("score", 650)
     
-    if credit_score >= 750:
-        pd_band = "A"
-        pd_percentage = 0.5
-        risk_level = "Low"
-    elif credit_score >= 650:
-        pd_band = "B"
-        pd_percentage = 2.5
-        risk_level = "Medium"
-    elif credit_score >= 550:
-        pd_band = "C"
-        pd_percentage = 8.0
-        risk_level = "High"
+    # Use service's risk band if available, else calculate
+    if "risk_band" in score_data:
+        pd_band = score_data["risk_band"]
+        risk_level = score_data.get("risk_label", "Medium")
+        pd_percentage = 2.5 # Mock based on band B
     else:
-        pd_band = "D"
-        pd_percentage = 15.0
-        risk_level = "Critical"
+        if credit_score >= 750:
+            pd_band = "A"
+            pd_percentage = 0.5
+            risk_level = "Low"
+        elif credit_score >= 650:
+            pd_band = "B"
+            pd_percentage = 2.5
+            risk_level = "Medium"
+        elif credit_score >= 550:
+            pd_band = "C"
+            pd_percentage = 8.0
+            risk_level = "High"
+        else:
+            pd_band = "D"
+            pd_percentage = 15.0
+            risk_level = "Critical"
     
     return {
         "entity_id": entity_id,
         "credit_score": credit_score,
+        "score": credit_score, # For frontend compatibility
+        "risk_band": pd_band,  # For frontend compatibility
         "pd_band": pd_band,
         "pd_percentage": pd_percentage,
         "risk_level": risk_level,
+        "risk_label": risk_level, # For frontend compatibility
         "factors": score_data.get("factors", []),
+        "shap_values": score_data.get("shap_values", []),
         "recommendations": score_data.get("recommendations", [])
     }
 
@@ -731,10 +765,17 @@ async def get_payments_schedule(entity_id: str, db: Session = Depends(get_db)):
             else:
                 priority = "medium"
             
+            # Resolve vendor name
+            vendor_name = "Unknown Vendor"
+            if inv.counterparty_id:
+                cp = db.query(Counterparty).filter(Counterparty.id == inv.counterparty_id).first()
+                if cp:
+                    vendor_name = cp.name
+
             payment_schedule.append({
                 "invoice_id": str(inv.id),
                 "invoice_number": inv.invoice_number,
-                "vendor": str(inv.counterparty_id) if inv.counterparty_id else "Unknown Vendor",
+                "vendor": vendor_name,
                 "amount": amount,
                 "due_date": inv.due_date.isoformat(),
                 "scheduled_date": scheduled_date.isoformat(),

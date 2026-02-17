@@ -18,7 +18,7 @@ class GSTSummary(Base):
 
     # ---- Core Identifiers ----
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    case_id = Column(String, ForeignKey("cases.id"), nullable=False)
+    entity_id = Column(String, ForeignKey("entities.id"), nullable=False)
 
     # ---- Filing Metadata ----
     return_type = Column(String, nullable=False)  

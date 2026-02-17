@@ -41,3 +41,38 @@ class BaseAgent(ABC):
             "action_type": action_type,
             "details": details
         })
+        self.persist_audit_log(action_type, details)
+
+    def persist_audit_log(self, action_type: str, details: Dict[str, Any]):
+        """Write audit log to database."""
+        try:
+            from app.db.database import SessionLocal
+            from app.models.audit_log import AuditLog
+            import json
+            
+            db = SessionLocal()
+            try:
+                # Determine severity based on action
+                severity = "INFO"
+                if "error" in str(details).lower():
+                    severity = "ERROR"
+                elif "urgent" in str(details).lower() or "critical" in str(details).lower():
+                    severity = "WARNING"
+                
+                log = AuditLog(
+                    agent_name=self.name,
+                    event_type="AI_AGENT",
+                    action=action_type,
+                    severity=severity,
+                    entity_id=self.entity_id,
+                    details=json.dumps(details, default=str),
+                    reasoning=details.get("output", "")[:500] if isinstance(details, dict) else str(details)[:500]
+                )
+                db.add(log)
+                db.commit()
+            except Exception as e:
+                print(f"Failed to persist audit log: {e}")
+            finally:
+                db.close()
+        except ImportError:
+            pass # functional even if DB not available

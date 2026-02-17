@@ -1,5 +1,5 @@
 from typing import Dict, Any, List
-from langchain.agents import create_agent
+
 from pydantic import BaseModel
 
 from app.agents.base_agent import BaseAgent
@@ -9,6 +9,7 @@ from app.db.database import SessionLocal
 from app.models.ledger_entry import LedgerEntry
 from sqlalchemy import func
 from datetime import date, timedelta
+from app.agents.tools import add_ledger_transaction
 
 # --- System Prompt ---
 DECISION_ADVISOR_SYSTEM_PROMPT = """You are the 'Fractional CFO' AI for an Indian SME. 
@@ -84,10 +85,7 @@ class DecisionAdvisorAgent(BaseAgent):
     
     @property
     def tools(self) -> list:
-        # For simplicity in this non-LangGraph version, we might bind these manually or use LC tools
-        # Here we just return the python functions to be bound by the caller if needed
-        # Or used inside the run method effectively
-        return [get_financial_context, simulate_expense]
+        return [get_financial_context, simulate_expense, add_ledger_transaction]
 
     def run(self, task: str) -> Dict[str, Any]:
         llm = get_llm()
@@ -96,17 +94,32 @@ class DecisionAdvisorAgent(BaseAgent):
         context = get_financial_context(self.entity_id)
         context_str = f"Current Financials: Cash=₹{context['cash_balance']:.2f}, Burn=₹{context['monthly_burn_rate']:.2f}/mo, Runway={context['runway_months']:.1f} months."
         
-        # 2. Simple LLM Chain (Optimization: Use Tools properly in V2)
-        # We append context to the user prompt for the "Reasoning" phase
-        full_prompt = f"""
-        {self.system_prompt}
+        # 2. Use New Agent API
+        from langchain.agents import create_agent
         
-        CONTEXT: {context_str}
+        # Inject context into system prompt if possible, or just append to user message
         
-        USER QUESTION: {task}
-        """
+        combined_prompt = f"""{self.system_prompt}
+
+FINANCIAL CONTEXT:
+{context_str}
+"""
+
+        agent = create_agent(
+            model=llm, 
+            tools=self.tools, 
+            system_prompt=combined_prompt
+        )
         
-        response = llm.invoke(full_prompt)
+        try:
+            result = agent.invoke({"messages": [{"role": "user", "content": task}]})
+            if isinstance(result, dict) and "messages" in result:
+                 last_msg = result["messages"][-1]
+                 output = last_msg.content if hasattr(last_msg, 'content') else str(last_msg)
+            else:
+                 output = str(result)
+        except Exception as e:
+            output = f"Agent Error: {str(e)}"
         
-        self.log_action("decision_advice", {"task": task, "response": response.content})
-        return {"output": response.content, "agent": self.name}
+        self.log_action("decision_advice", {"task": task, "response": output})
+        return {"output": output, "agent": self.name}

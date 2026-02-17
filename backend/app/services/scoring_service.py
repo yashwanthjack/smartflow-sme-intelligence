@@ -22,9 +22,16 @@ class CreditFeatures:
     inflow_consistency: float = 0.0  # % of days with positive inflow
     avg_days_to_collect: float = 0.0  # DSO approximation
     gst_compliance_rate: float = 0.0  # % of on-time GST filings
+    gst_compliance_score: float = 0.0 # Alias for rate
     bounce_rate: float = 0.0  # % of bounced transactions
     revenue_trend: float = 0.0  # Month-over-month growth
+    revenue_trend_mom: float = 0.0  # Month-over-month growth (alias)
     top_customer_concentration: float = 0.0  # Revenue from top 3 customers
+    customer_concentration: float = 0.0  # Alias for top_customer_concentration
+    monthly_burn_rate: float = 0.0
+    runway_months: float = 0.0
+    debt_to_income_ratio: float = 0.0
+    inventory_turnover: float = 0.0
 
 
 class ScoringService:
@@ -102,15 +109,71 @@ class ScoringService:
         else:
             avg_dso = 45  # Default
         
+        # GST Compliance (Real)
+        from app.models.gst_summary import GSTSummary
+        gst_summary = (
+            self.db.query(GSTSummary)
+            .filter(GSTSummary.entity_id == entity_id)
+            .order_by(GSTSummary.period.desc())
+            .limit(6)
+            .all()
+        )
+        if gst_summary:
+            filed_on_time = sum(1 for g in gst_summary if g.filing_status == 'filed')
+            gst_compliance_rate = filed_on_time / len(gst_summary)
+        else:
+            gst_compliance_rate = 0.5 # Default neutral if no data
+
+        # Bounce Rate (Real - Heuristic based on "bounced" in status or description if avail)
+        # For now, we use a placeholder as we don't have a 'bounced' status in Invoice model
+        bounce_rate = 0.0 
+
+        # Revenue Trend (Month over Month)
+        current_month_revenue = sum(e.amount for e in ledger_entries if e.amount > 0 and e.ledger_date >= (date.today() - timedelta(days=30)))
+        prev_month_revenue = sum(e.amount for e in ledger_entries if e.amount > 0 and e.ledger_date < (date.today() - timedelta(days=30)) and e.ledger_date >= (date.today() - timedelta(days=60)))
+        
+        if prev_month_revenue > 0:
+            revenue_trend = (current_month_revenue - prev_month_revenue) / prev_month_revenue
+        else:
+            revenue_trend = 0.0
+
+        # Customer Concentration
+        if daily_inflows:
+            # We need counterparty data for this, which is on Invoice/Ledger
+            # Approximation: Top 3 inflows vs total inflows
+            sorted_inflows = sorted(list(daily_inflows.values()), reverse=True)
+            top_3 = sum(sorted_inflows[:3])
+            total_rev = sum(sorted_inflows)
+            top_customer_concentration = top_3 / total_rev if total_rev > 0 else 0
+        else:
+            top_customer_concentration = 0.0
+
+        # Burn & Runway
+        monthly_burn = 0.0
+        outflows = [e.amount for e in ledger_entries if e.amount < 0]
+        if outflows:
+             total_outflow = abs(sum(outflows))
+             approx_months = max(1, days / 30)
+             monthly_burn = total_outflow / approx_months
+        
+        runway = avg_balance / monthly_burn if monthly_burn > 0 else 999.0
+        
+        # Alias validation
+        gst_score = gst_compliance_rate
+
         return CreditFeatures(
             avg_daily_balance=avg_balance,
             balance_volatility=balance_volatility,
             inflow_consistency=inflow_consistency,
             avg_days_to_collect=avg_dso,
-            gst_compliance_rate=0.95,  # TODO: Integrate with GSTSummary
-            bounce_rate=0.02,  # TODO: Integrate with bank data
-            revenue_trend=0.05,  # TODO: Calculate MoM growth
-            top_customer_concentration=0.4  # TODO: Calculate from counterparty data
+            monthly_burn_rate=monthly_burn,
+            runway_months=runway,
+            revenue_trend_mom=revenue_trend,
+            gst_compliance_score=gst_compliance_rate,
+            debt_to_income_ratio=0.0,
+            inventory_turnover=0.0,
+            customer_concentration=top_customer_concentration,
+            bounce_rate=bounce_rate
         )
     
     def _get_mock_features(self) -> CreditFeatures:
@@ -121,9 +184,14 @@ class ScoringService:
             inflow_consistency=0.7,
             avg_days_to_collect=42,
             gst_compliance_rate=0.92,
+            gst_compliance_score=0.92,
             bounce_rate=0.03,
             revenue_trend=0.08,
-            top_customer_concentration=0.45
+            revenue_trend_mom=0.08,
+            top_customer_concentration=0.45,
+            customer_concentration=0.45,
+            monthly_burn_rate=120000,
+            runway_months=8.5
         )
     
     def calculate_score(self, entity_id: str) -> Dict[str, Any]:
@@ -253,13 +321,23 @@ class ScoringService:
                 'bounce_rate': round(features.bounce_rate, 3),
                 'top_customer_concentration': round(features.top_customer_concentration, 3)
             },
+            'shap_values': [
+                {'name': 'Base Score', 'value': 600, 'description': 'Starting baseline'},
+                *[{'name': f['factor'], 'value': int(f['impact'].replace('+','')), 'description': f['factor']} for f in adjustments]
+            ],
             'recommendations': self._get_recommendations(features, final_score),
             'loan_eligibility': self._get_loan_eligibility(final_score, features.avg_daily_balance)
         }
     
     def _xgboost_score(self, features: CreditFeatures) -> Dict[str, Any]:
-        """Score using trained XGBoost model."""
+        """Score using trained XGBoost model with SHAP explainability."""
         # Convert features to array
+        feature_names = [
+            'avg_daily_balance', 'balance_volatility', 'inflow_consistency',
+            'avg_days_to_collect', 'gst_compliance_rate', 'bounce_rate',
+            'revenue_trend', 'top_customer_concentration'
+        ]
+        
         X = np.array([[
             features.avg_daily_balance,
             features.balance_volatility,
@@ -274,6 +352,36 @@ class ScoringService:
         # Predict (model outputs probability of default)
         prob_default = self.model.predict_proba(X)[0][1]
         
+        # Calculate SHAP values
+        try:
+            import shap
+            explainer = shap.TreeExplainer(self.model)
+            shap_values = explainer.shap_values(X)
+            
+            # Format SHAP values for frontend
+            # shap_values[0] is for class 0, shap_values[1] is for class 1 (default) usually
+            # Depending on model type (binary), shap_values might be a list or array
+            if isinstance(shap_values, list):
+                vals = shap_values[1][0]
+            else:
+                vals = shap_values[0]
+                
+            shap_output = [
+                {
+                    'name': name,
+                    'value': float(val),
+                    'description': f"{name.replace('_', ' ').title()}"
+                }
+                for name, val in zip(feature_names, vals)
+            ]
+            
+            # Sort by absolute impact
+            shap_output.sort(key=lambda x: abs(x['value']), reverse=True)
+            
+        except Exception as e:
+            print(f"SHAP calculation failed: {e}")
+            shap_output = []
+        
         # Convert to score (lower default probability = higher score)
         score = int(900 - (prob_default * 600))
         score = max(300, min(900, score))
@@ -285,7 +393,9 @@ class ScoringService:
             'risk_band': risk_band['band'],
             'risk_label': risk_band['label'],
             'method': 'xgboost',
-            'probability_of_default': round(prob_default, 4)
+            'probability_of_default': round(prob_default, 4),
+            'shap_values': shap_output,
+            'recommendations': self._get_recommendations(features, score)
         }
     
     def _get_risk_band(self, score: int) -> Dict[str, str]:
@@ -347,6 +457,45 @@ class ScoringService:
             'indicative_rate': rate_range,
             'invoice_discounting': "Eligible" if score >= 600 else "Not Eligible",
             'term_loan': "Eligible" if score >= 700 else "Limited"
+        }
+
+    def calculate_health_pulse(self, entity_id: str) -> Dict[str, Any]:
+        """
+        Calculate 'Business Health Pulse' (H) composite metric.
+        Formula: H = 0.3*R + 0.2*C + 0.25*D + 0.25*E
+        """
+        features = self.compute_features(entity_id)
+        credit_score_data = self.calculate_score(entity_id)
+        score = credit_score_data['score']
+        
+        # 1. Runway Score (R): Target > 6 months
+        # Cap at 12 months for max score 100
+        r_val = min(100, (features.runway_months / 6.0) * 100)
+        
+        # 2. Credit Score (C): Normalized 300-900 -> 0-100
+        c_val = max(0, min(100, (score - 300) / 6))
+        
+        # 3. DSO Score (D): Target < 45 days
+        # 30 days = 100, 90 days = 0
+        d_val = max(0, min(100, 100 - (features.avg_days_to_collect - 30) * (100/60)))
+        
+        # 4. Efficiency (E): Based on burn rate trend (revenue_trend)
+        # Positive trend = higher efficiency score
+        e_val = 50 + (features.revenue_trend_mom * 100)
+        e_val = max(0, min(100, e_val))
+        
+        # Composite
+        health_pulse = (0.3 * r_val) + (0.2 * c_val) + (0.25 * d_val) + (0.25 * e_val)
+        
+        return {
+            'health_pulse': round(health_pulse, 1),
+            'components': {
+                'runway_score': round(r_val, 1),
+                'credit_score_norm': round(c_val, 1),
+                'dso_score': round(d_val, 1),
+                'efficiency_score': round(e_val, 1)
+            },
+            'interpretation': 'Excellent' if health_pulse > 80 else ('Good' if health_pulse > 60 else 'Needs Attention')
         }
 
 

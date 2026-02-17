@@ -1,0 +1,21 @@
+
+==================================================
+EXPERIMENTAL RESULTS (Copy to Paper)
+==================================================
+VII. EXPERIMENTAL EVALUATION
+
+Dataset
+Synthetic SME dataset consisting of:
+- 24 months transaction history
+- 1,000 credit risk profiles
+- 12 core financial indicators
+
+Results
+Forecasting:
+- MAPE: 11.4%
+- RMSE (Normalized): 0.133
+
+Credit Scoring:
+- AUC-ROC: 0.909
+- F1-score: 0.660
+==================================================

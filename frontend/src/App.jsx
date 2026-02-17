@@ -29,7 +29,8 @@ import {
     Landmark,
     Briefcase,
     Plus,
-    User
+    User,
+    Brain
 } from 'lucide-react'
 
 import {
@@ -47,6 +48,13 @@ import {
     Pie,
     Cell
 } from 'recharts'
+
+import { TransactionsTable } from './components/ZentraDashboard'
+import AgentLogPage from './components/AgentLogPage'
+import DPIStackHub from './components/DPIStackHub'
+import GSTReconciliation from './components/GSTReconciliation'
+import CreditMarketplace from './components/CreditMarketplace'
+import SupplyChainScore from './components/SupplyChainScore'
 
 // API base URL - connects to backend
 const API_BASE = '/api'
@@ -69,11 +77,15 @@ const formatINR = (amount) => {
 function Sidebar({ activeTab, setActiveTab, onLogout }) {
     const navItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        { id: 'integrations', label: 'Integrations', icon: Link },
-        { id: 'reports', label: 'Reports', icon: FileText },
+        // { id: 'integrations', label: 'DPI Stack Hub', icon: Link }, // Hidden for MVP
+        { id: 'gst', label: 'GST Recon', icon: FileText },
+        // { id: 'credit', label: 'Credit Market', icon: Landmark }, // Hidden for MVP
+        // { id: 'supplychain', label: 'Supply Chain', icon: Briefcase }, // Hidden for MVP
+        { id: 'reports', label: 'Reports', icon: BarChart3 },
         { id: 'models', label: 'Models', icon: Activity },
         { id: 'upload', label: 'Upload Data', icon: Upload },
         { id: 'agents', label: 'Copilot', icon: MessageSquare },
+        { id: 'workforce', label: 'Agent Workforce', icon: Brain },
         { id: 'profile', label: 'Profile & Settings', icon: User },
     ]
 
@@ -439,74 +451,7 @@ function ScenarioView({ entityId, currentBurn }) {
 // TRANSACTIONS TABLE (Spreadsheet View)
 // ------------------------------------------------------------------
 
-function TransactionsTable({ entityId }) {
-    const { token } = useAuth()
-    const [entries, setEntries] = useState([])
-    const [loading, setLoading] = useState(true)
 
-    useEffect(() => {
-        if (!entityId || !token) return
-        fetch(`${API_BASE}/data/entities/${entityId}/ledger?limit=100`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        })
-            .then(res => res.json())
-            .then(data => {
-                setEntries(data.items || [])
-                setLoading(false)
-            })
-            .catch(err => setLoading(false))
-    }, [entityId, token])
-
-    if (loading) return <div style={{ padding: 20 }}>Loading data...</div>
-
-    return (
-        <div className="card" style={{ overflow: 'hidden' }}>
-            <div className="card-header">
-                <span className="card-title">Recent Transactions</span>
-                <button className="btn btn-secondary" style={{ fontSize: 12 }}>Export CSV</button>
-            </div>
-            <div style={{ overflowX: 'auto' }}>
-                <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 13 }}>
-                    <thead>
-                        <tr style={{ borderBottom: '1px solid var(--glass-border)', textAlign: 'left', color: 'var(--text-muted)' }}>
-                            <th style={{ padding: 12 }}>Date</th>
-                            <th style={{ padding: 12 }}>Description</th>
-                            <th style={{ padding: 12 }}>Category</th>
-                            <th style={{ padding: 12 }}>Source</th>
-                            <th style={{ padding: 12, textAlign: 'right' }}>Amount</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {entries.map(e => (
-                            <tr key={e.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <td style={{ padding: 12 }}>{new Date(e.date).toLocaleDateString()}</td>
-                                <td style={{ padding: 12 }}>{e.description}</td>
-                                <td style={{ padding: 12 }}>
-                                    <span style={{
-                                        padding: '2px 8px',
-                                        borderRadius: 12,
-                                        background: 'rgba(255,255,255,0.05)',
-                                        fontSize: 11
-                                    }}>
-                                        {e.category}
-                                    </span>
-                                </td>
-                                <td style={{ padding: 12, opacity: 0.7 }}>{e.source}</td>
-                                <td style={{
-                                    padding: 12,
-                                    textAlign: 'right',
-                                    color: e.amount > 0 ? 'var(--success)' : 'var(--text-primary)'
-                                }}>
-                                    {formatINR(e.amount)}
-                                </td>
-                            </tr>
-                        ))}
-                    </tbody>
-                </table>
-            </div>
-        </div>
-    )
-}
 
 // Data Upload Component From Previous Step
 function DataUpload({ entityId, onUploadSuccess }) {
@@ -567,16 +512,9 @@ function DataUpload({ entityId, onUploadSuccess }) {
         // I need to add `const { token } = useAuth()` inside DataUpload.
 
         try {
-            // Needs token for fetch if backend requires it. 
-            // Even if not, good practice.
-            // Using a hack to get token from localStorage if useAuth not available, 
-            // OR finding where DataUpload is defined.
-            // It is defined in App.jsx. I can add useAuth hook.
-            const token = localStorage.getItem('token') // Fallback or useAuth
-
             const res = await fetch(`${API_BASE}/ingest/${uploadType}`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }, // Add header (fetch handles multipart boundary if Content-Type is NOT set)
+                headers: { 'Authorization': `Bearer ${token}` },
                 body: formData
             })
             const data = await res.json()
@@ -795,16 +733,19 @@ function Integrations() {
 }
 
 // Agent Copilot Sidebar (Collapsible)
-function Copilot({ entityId, isOpen, toggle }) {
+function Copilot({ entityId, isOpen, toggle, initialQuery }) {
+    const { token } = useAuth()
     const [messages, setMessages] = useState([
         { role: 'agent', content: 'I am analyzing your data in the background. Ask me anything about your finances.' }
     ])
     const [input, setInput] = useState('')
     const [loading, setLoading] = useState(false)
 
-    const sendMessage = async () => {
-        if (!input.trim() || loading) return
-        const userMessage = { role: 'user', content: input }
+    const sendMessage = async (textOverride) => {
+        const textToSend = textOverride || input
+        if (!textToSend.trim() || loading) return
+
+        const userMessage = { role: 'user', content: textToSend }
         setMessages(prev => [...prev, userMessage])
         setInput('')
         setLoading(true)
@@ -812,8 +753,11 @@ function Copilot({ entityId, isOpen, toggle }) {
         try {
             const response = await fetch(`${API_BASE}/agents/query/${entityId}`, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ query: input })
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                },
+                body: JSON.stringify({ query: textToSend })
             })
 
             if (response.ok) {
@@ -828,6 +772,17 @@ function Copilot({ entityId, isOpen, toggle }) {
         }
         setLoading(false)
     }
+
+    // React to initialQuery changes
+    useEffect(() => {
+        if (initialQuery) {
+            setInput(initialQuery)
+            // Auto-send if it's a specific action query
+            if (initialQuery.includes("Analyze") || initialQuery.includes("Review")) {
+                sendMessage(initialQuery)
+            }
+        }
+    }, [initialQuery])
 
     if (!isOpen) return (
         <button
@@ -893,10 +848,11 @@ function Copilot({ entityId, isOpen, toggle }) {
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && sendMessage()}
-                        placeholder="Ask Copilot..."
+                        placeholder={entityId ? "Ask Copilot..." : "Select an organization first..."}
+                        disabled={!entityId}
                         autoFocus
                     />
-                    <button onClick={sendMessage} disabled={loading}><Send size={16} /></button>
+                    <button onClick={sendMessage} disabled={loading || !entityId}><Send size={16} /></button>
                 </div>
             </div>
         </div>
@@ -910,6 +866,7 @@ import LenderProfile from './pages/LenderProfile'
 import { CreditScoreGauge, BurnTrendChart, DSOChart, CashVelocityChart, RiskAlerts } from './components/AdvancedCharts'
 import ScenarioSimulator from './components/ScenarioSimulator'
 import CollectionsPlan from './components/CollectionsPlan'
+import SaasDashboard from './components/SaasDashboard'
 import PaymentsSchedule from './components/PaymentsSchedule'
 import RiskScoreCard from './components/RiskScoreCard'
 import {
@@ -931,8 +888,14 @@ export default function App() {
     const [entities, setEntities] = useState([])
     const [currentEntity, setCurrentEntity] = useState(null)
     const [copilotOpen, setCopilotOpen] = useState(false)
+    const [copilotQuery, setCopilotQuery] = useState('') // New state for pre-filling query
     const [searchQuery, setSearchQuery] = useState('')
     const [showOnboarding, setShowOnboarding] = useState(false)
+
+    const openCopilot = (query = '') => {
+        if (query) setCopilotQuery(query)
+        setCopilotOpen(true)
+    }
 
     // Data States
     const [metrics, setMetrics] = useState(null)
@@ -946,7 +909,9 @@ export default function App() {
     const [grossVolumeData, setGrossVolumeData] = useState(null)
     const [customersData, setCustomersData] = useState(null)
 
-    useEffect(() => { loadEntities() }, [])
+    useEffect(() => {
+        if (token) loadEntities()
+    }, [token])
     useEffect(() => { if (currentEntity) loadOSData() }, [currentEntity])
 
     // Detect if new user needing onboarding
@@ -1010,9 +975,9 @@ export default function App() {
                 fetch(`${API_BASE}/data/entities/${id}/pnl`, { headers }),
                 fetch(`${API_BASE}/data/entities/${id}/spend-by-category`, { headers }),
                 fetch(`${API_BASE}/data/entities/${id}/forecast?days=30`, { headers }),
-                fetch(`${API_BASE}/data/metrics/waterfall/${id}`, { headers }),
-                fetch(`${API_BASE}/data/metrics/gross-volume/${id}`, { headers }),
-                fetch(`${API_BASE}/data/metrics/customers/${id}`, { headers })
+                fetch(`${API_BASE}/metrics/waterfall/${id}`, { headers }),
+                fetch(`${API_BASE}/metrics/gross-volume/${id}`, { headers }),
+                fetch(`${API_BASE}/metrics/customers/${id}`, { headers })
             ])
 
             if (metricsRes.ok) setMetrics(await metricsRes.json())
@@ -1122,105 +1087,33 @@ export default function App() {
                 </header>
 
                 {activeTab === 'dashboard' && (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: 24 }}>
-                        {/* 1. Key Metrics Row */}
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 16 }}>
-                            <MetricCard
-                                title="Bank Balance"
-                                value={formatINR(metrics?.cash_balance)}
-                                trend="up" trendValue="4.2%"
-                                icon={Building2}
-                            />
-                            <MetricCard
-                                title="Net Burn"
-                                value={formatINR(metrics?.monthly_burn_rate)}
-                                subValue="Monthly Avg"
-                                icon={Zap}
-                            />
-                            <MetricCard
-                                title="Runway"
-                                value={`${metrics?.runway_months || 0} Mo`}
-                                subValue="Cash Out Date: Oct 2026"
-                                color={metrics?.runway_months < 6 ? 'danger' : 'success'}
-                                icon={Activity}
-                            />
-                            <MetricCard
-                                title="Net Income"
-                                value={formatINR(metrics?.net_income_this_month)}
-                                subValue="Margin: 22%"
-                                icon={TrendingUp}
-                            />
-                        </div>
+                    <SaasDashboard openCopilot={openCopilot} />
+                )}
 
-                        {/* 2. Main Chart Row - Payments Waterfall + Gross Volume */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: 16 }}>
-                            <PaymentsWaterfallChart data={waterfallData} />
-                            <GrossVolumeCard
-                                totalVolume={grossVolumeData?.totalVolume || metrics?.cash_balance}
-                                change={grossVolumeData?.change || 15}
-                                breakdown={grossVolumeData?.breakdown}
-                            />
-                        </div>
-
-                        {/* 3. AI Assistant Prompt Bar */}
-                        <AIPromptBar onSubmit={(query) => { setCopilotOpen(true); }} />
-
-                        {/* 4. Dark Forecast Chart */}
-                        <DarkForecastChart entityId={currentEntity?.id} />
-
-                        {/* 5. Bottom Row - Retention, Transactions, Insight */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1.5fr 1fr', gap: 16 }}>
-                            <RetentionChart />
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-                                <TransactionsDotGrid total={grossVolumeData?.totalVolume} change={grossVolumeData?.change ? `+${grossVolumeData?.change}%` : null} />
-                                <CustomersCard
-                                    total={customersData?.total_customers}
-                                    change={customersData?.new_customers}
-                                    highestDay="Fri"
-                                />
-                            </div>
-                            <InsightCard
-                                percentage={75}
-                                title="Authorization rate increased by 4% compared to last week."
-                                description="This improvement reduced failed transactions by 950 and is projected to recover ₹12,400."
-                            />
-                        </div>
-
-                        {/* 6. Collections & Payments Row */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 }}>
-                            <CollectionsPlan entityId={currentEntity?.id} />
-                            <PaymentsSchedule entityId={currentEntity?.id} />
-                        </div>
-
-                        {/* 7. Risk Score & Charts */}
-                        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 16 }}>
-                            <RiskScoreCard entityId={currentEntity?.id} />
-                            <IncomeVsExpenseChart data={pnlData} />
-                            <SpendCategoryChart data={spendData} />
-                        </div>
-
-                        {/* 8. Scenario Simulator */}
-                        <ScenarioSimulator entityId={currentEntity?.id} />
-                    </div>
-                )
-                }
-
-                {activeTab === 'integrations' && <Integrations />}
+                {activeTab === 'integrations' && <DPIStackHub />}
+                {activeTab === 'gst' && <GSTReconciliation />}
+                {activeTab === 'credit' && <CreditMarketplace />}
+                {activeTab === 'supplychain' && <SupplyChainScore />}
 
                 {
                     activeTab === 'reports' && (
                         <div>
                             <TransactionsTable entityId={currentEntity?.id} />
+                            <div style={{ margin: '24px 0' }}>
+                                <PaymentsSchedule entityId={currentEntity?.id} />
+                            </div>
                             <InvoicesTable entityId={currentEntity?.id} />
                         </div>
                     )
                 }
 
-                {activeTab === 'models' && <ScenarioView entityId={currentEntity?.id} currentBurn={metrics?.monthly_burn_rate} />}
+                {activeTab === 'models' && <ScenarioSimulator entityId={currentEntity?.id} />}
 
                 {activeTab === 'upload' && <DataUpload entityId={currentEntity?.id} onUploadSuccess={loadOSData} />}
 
                 {activeTab === 'profile' && <Profile />}
+
+                {activeTab === 'workforce' && <AgentLogPage />}
 
                 {
                     activeTab === 'agents' && (
@@ -1239,6 +1132,7 @@ export default function App() {
                         entityId={currentEntity?.id}
                         isOpen={copilotOpen}
                         toggle={() => setCopilotOpen(!copilotOpen)}
+                        initialQuery={copilotQuery}
                     />
                 )
             }

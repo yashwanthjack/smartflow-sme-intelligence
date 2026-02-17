@@ -1,6 +1,6 @@
 # GST Agent - Automated Compliance and Reconciliation
 from typing import Dict, Any
-from langchain.agents import create_agent
+
 
 from app.agents.base_agent import BaseAgent
 from app.agents.llm import get_llm
@@ -43,27 +43,79 @@ class GSTAgent(BaseAgent):
         return [check_gst_compliance, get_gst_reconciliation]
     
     def run(self, task: str = "Check GST compliance status and identify any issues") -> Dict[str, Any]:
-        """Execute the GST agent."""
-        llm = get_llm()
+        """Execute the GST agent using direct tool invocation and LLM synthesis."""
+        from app.agents.tools import set_db_session
+        from app.db.database import SessionLocal
+        import json
+        from langchain_core.messages import HumanMessage, SystemMessage
         
-        agent = create_agent(
-            llm, 
-            self.tools, 
-            system_prompt=GST_SYSTEM_PROMPT
-        )
+        db = SessionLocal()
+        set_db_session(db)
         
-        result = agent.invoke({
-            "messages": [{"role": "user", "content": f"Entity ID: {self.entity_id}. Task: {task}"}]
-        })
-        
-        self.log_action("gst_compliance_checked", {"result": result})
-        
-        if hasattr(result, 'get'):
-            output = result.get("output", str(result))
-        else:
-            output = str(result)
+        try:
+            # Step 1: Check compliance status
+            try:
+                compliance_data = check_gst_compliance.invoke(self.entity_id)
+            except Exception as e:
+                compliance_data = {"error": str(e)}
             
-        return {"output": output, "agent": self.name}
+            # Step 2: Get reconciliation
+            try:
+                reconciliation_data = get_gst_reconciliation.invoke(self.entity_id)
+            except Exception as e:
+                reconciliation_data = {"error": str(e)}
+            
+            # Step 3: Synthesis
+            llm = get_llm()
+            
+            # SAFEGUARD: If using the weak local TinyLlama model, bypass generation to prevent hallucinations.
+            # We check the class name to avoid importing optional dependencies.
+            is_local_weak_model = type(llm).__name__ == "HuggingFacePipeline"
+            
+            if is_local_weak_model:
+                # Deterministic Template for Local CPU/TinyLlama
+                filing_status = compliance_data.get('filing_status', 'Unknown')
+                itc_val = compliance_data.get('itc', {}).get('available', 0)
+                mismatches = reconciliation_data.get('summary', {}).get('mismatches', 0)
+                
+                output = (
+                    f"**GST Status Summary**\n"
+                    f"- Filing Status: {filing_status}\n"
+                    f"- ITC Available: ₹{itc_val:,}\n"
+                    f"- Mismatches: {mismatches}\n\n"
+                    f"Recommendation: {compliance_data.get('recommendation', 'check portal')}"
+                )
+            else:
+                # Advanced LLM (vLLM, Ollama, OpenAI, Gemini) - Use Prompting
+                compliance_text = (
+                    f"Filing: {compliance_data.get('filing_status', 'Unknown')}\n"
+                    f"ITC: {compliance_data.get('itc', {}).get('available', 0)}\n"
+                )
+                recon_summary = reconciliation_data.get('summary', {})
+                recon_text = (
+                    f"Mismatches: {recon_summary.get('mismatches', 0)}\n"
+                )
+                
+                formatted_prompt = (
+                    f"System: Summarize this GST data concisely.\n"
+                    f"Data:\n{compliance_text}{recon_text}\n"
+                    f"Summary:"
+                )
+                
+                response = llm.invoke(formatted_prompt)
+                if hasattr(response, 'content'):
+                    output = response.content
+                else:
+                    output = str(response)
+
+            self.log_action("gst_compliance_checked", {"status": "success"})
+            return {"output": output, "agent": self.name}
+            
+        except Exception as e:
+            output = f"I encountered an error while analyzing your GST data: {str(e)}"
+            return {"output": output, "agent": self.name}
+        finally:
+            db.close()
 
 
 def run_gst_agent(entity_id: str, task: str = None) -> Dict[str, Any]:

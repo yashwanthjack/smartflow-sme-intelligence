@@ -1,0 +1,993 @@
+ 
+Decision Support System Terms of SME’s Credit 
+Lending Based on Machine Learning Approach 
+Fadi H. Hazboun 
+Information Technology Department  
+Ahli Bank 
+ITD 
+Palestine, Ramallah 
+f.hazboun@student.aaup.edu 
+https://orcid.org/0000-0001-6314-2004
+Abstract— Small and medium-sized (SMEs) companies have 
+proven economic competencies and great potential in light of the 
+recent global economic transformations in developed and 
+developing countries, which qualified them to play a major role 
+in development and reform policy, by providing job 
+opportunities, intensifying the industrial fabric, and supporting 
+large industries. It should be noted that these institutions need 
+greater efforts and important components that respond to their 
+aspirations and idiosyncrasies, to be able to survive and compete 
+in the markets, as we have witnessed the bankruptcy and 
+collapse of many companies due to financial conditions and 
+obstacles. In this paper, we proposed building a lending decision 
+support system (DSS) for SMEs and researching the reasons 
+that prevent them from lending, and what are the pillars on 
+which the credit decision in banks depends, and how difficult it 
+is to analyze the variables and their information, the data set 
+represents SMEs lending requests from Jordan Ahli Bank. Four 
+machine learning algorithms were used to build an automated 
+system to support decision-making in granting credit. The 
+classification accuracy of the models was evaluated where the 
+accuracy exceeded 90%, and SVM outperformed other rating 
+models. Our findings show that the challenges that SMEs face to 
+obtain credit are summarized by the lack of the company's 
+capital, the recent date of incorporation, and the lack of 
+guarantees. 
+Keywords— SME's, decision, decision support system, 
+prediction, machine learning. 
+I. INTRODUCTION  
+Today, executives and decision-makers in financial 
+institutions tend to take more flexible decisions and work to 
+respond quickly to customers’ reactions towards a particular 
+product or service, especially with the growing volume of 
+traditional banks’ customers [1], and as we are witnessing in 
+recent times the establishment of digital banks that rely 
+entirely on cloud data, free and open access for data related 
+to development in countries around the world [2], the demand 
+for lending has increased, which has resulted in a huge 
+amount of data that has become difficult to deal with using 
+traditional tools and techniques [3]. The useful information is 
+hidden in big data, especially since the growth of this data is 
+not slowing down [4]. With the rise of awareness of big data 
+and analytics technology, the digital world is constantly 
+expanding, getting more complex, and more interesting than 
+ever [5]. From 2005 to 2020, the digital world grew 300 
+times, “from 130 exabytes to 40,000 exabytes, or 40 trillion. 
+gigabytes (more than 5,200 gigabytes per man, woman, and 
+child in 2020) ” [5]. From now until 2025, the digital world 
+will roughly double every two years [5]. This means that 
+nowadays big data is more likely to be used in the field of 
+marketing Sales and Information Technology, with this 
+increase in the volume of data, decision-making processes 
+become more complex, which requires finding automated 
+solutions to help make the right decision at the right time and 
+with the lowest costs [6]. 
+DSS is expected to expand the capabilities of the decision -
+maker in processing a huge amount of information related to 
+the decision problem, whether it is structured, very complex, 
+or time-consuming, and can contribute to saving knowledge 
+resources and a large amount of valuable time for the 
+decision - maker  as it reduces the time that dedicated access to 
+the non-structured decisions [2], DSS can provide the 
+decision - makers  with potential alternatives that they may not 
+notice or because they seem too complex and difficult to 
+achieve, this may lead to finding innovative solutions [7]. 
+DSS may justify the decision-maker's position, which may 
+facilitate consensus among the participants in the decision-
+making, the benefits of using DSS can be explained in the 
+following points [8] [6]: 
+• Expand the decision maker's ability to process 
+information and knowledge. 
+• Expand the decision maker's ability to tackle 
+complex and time-consuming problems. 
+• Reducing the time allotted to the decision-making 
+process. 
+• Improving the credibility of the decision process or 
+results. 
+• Encouraging the decision-maker to research and 
+explore. 
+• Discovering new ways of thinking about the 
+problem area. 
+• Generate new evidence to support a decision or 
+prove new assumptions. 
+• Creating a strategic or competitive advantage for 
+an organization. 
+Banks play an important and vital role in terms of developing 
+economic activity, whether industrial, service or agricultural, 
+in the field of lending to SMEs as this activity, is considered 
+one of the most important activities in the economic and 
+social development and it plays an effective role in the 
+development of the national economy [9], SME’s not only 
+providing job opportunities for labor and growing the 
+economy but also to stimulate innovation and competition in 
+the markets [6] [10].  
+Despite the great expansion of lending operations, there is a 
+reluctance by many banks to lend to the SME sector, for 
+many reasons, including raising the ceiling of the necessary 
+guarantees, checking the cash flow of a company, the 
+financial solvency of the business owner and many other 
+reasons, which leads to the erosion of the volume SME’s 
+Sector in Palestinian Market, This loss will lead to a low level 
+2022 International Conference of Science and Information Technology in Smart Administration (ICSINTESA)
+978-1-6654-7288-3/22/$31.00 ©2022 IEEE 75
+2022 International Conference of Science and Information Technology in Smart Administration (ICSINTESA) | 978-1-6654-7288-3/22/$31.00 ©2022 IEEE | DOI: 10.1109/ICSINTESA56431.2022.10041593
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:22:27 UTC from IEEE Xplore.  Restrictions apply. 
+of income, the spread of informality and weak growth 
+performance [5] [8].  
+To fill this gap, we must first understand the problems faced 
+by SMEs in the field of lending from the perspective of banks 
+to support and strengthen their presence in the Palestinian 
+market and strengthen decision-making mechanisms to 
+support the process of granting credit for this type of 
+economic sectors. 
+The global financial crisis has cast a shadow over the 
+economic sectors in general and the banking sector, due to the 
+increase in the value of non-performing loans [10]. The 
+effects of this were reflected in the type of credit policies 
+pursued by bank departments and decision-makers in the 
+process of granting credit, in anticipation of the risks from 
+clients' inability to repay loans and their interests [11]. These 
+credit policies were dominated by conservative policies when 
+making lending decisions, unlike the pattern that prevailed 
+before that crisis, where banks practiced less conservative 
+credit policies, as Bernard Roy defined decision support as 
+“the activity that relies on clear models that help the decision-
+maker.” [12].The concept has not changed, but the only thing 
+that has changed is the tools used in decision support, which 
+have become keeping pace with technological development, 
+and thus DSS has become an integral part of administrative 
+work [13]. To facilitate the selective process and to achieve 
+the objective result, a supportive system in decision-making 
+is needed as it can help decision-making. 
+The current research focused on providing a fully automated 
+system to support the decision of SME lending through 
+machine learning algorithms to enhance the factors that 
+would maintain profitability, improve performance, and 
+achieve success to grant fair credit to this category of 
+borrowers.  
+This study will be organized as follows: Section 2 
+introduces the related literature. Section 3 dataset overview 
+and data preprocessing. Section 4 discusses the proposed 
+Machine Learning model workflow; Section 5 presents the 
+algorithm structure. Section 6 presents the results and 
+analysis. Section 7 presents the conclusion and discusses the 
+scope of future research.  
+ 
+II. LITERATURE REVIEW 
+The decision-making process in financial 
+institutions represents the basis of the entire administrative 
+function, as it is the axis around which all the necessary 
+aspects of the organization revolve so that it is directly linked 
+to the management functions of planning, organizing, 
+directing, and controlling. It aims to achieve a strategic goal 
+of maximizing the market value of the institution, 
+maximizing the institution's wealth, achieving maximum 
+returns, and maintaining cash flow and financial strength [11] 
+[14]. “These decisions are represented in a decision 
+financing, investment decision, in addition to profit 
+distribution decision” [2]. Through our research reviews, we 
+found that there is a diversity of decisions in the organization 
+according to a set of criteria, first decisions related to the time 
+criterion [15], we find long term decisions, and short term 
+decisions [16], secondly, decisions related to the criterion of 
+importance [17], we find strategic decisions and tactical 
+decisions, Third, decisions according to a functional criterion 
+[7], we find several decisions, the most important of which is 
+the financial decision. The field of financial management and 
+the strategic financial decision can be defined as “the 
+decisiveness or selection of one of the possible or alternative 
+solutions to achieve a purpose or face a specific situation 
+related to the financial aspect of the enterprise’s project, 
+which has a significant impact on the process and future of 
+the enterprise.” [14] Table No. 1 shows a comparison of the 
+decision types and their advantages and disadvantages. 
+TABLE I.  DECISION TYPES. 
+Decision 
+Type 
+Time 
+criterion 
+Advantages Disadvantages  
+Strategic 
+decisions [2] 
+[18]  
+Long term 
+decision 
+-A very 
+important 
+decision 
+- Single 
+decisions or 
+group decisions 
+-A riskier decision 
+-Mistakes cost a 
+lot 
+ -  Errors are not 
+easily correctable 
+Tactical 
+decisions 
+[17]  
+Short Term 
+decision 
+ - less risky 
+ - Less 
+uncertainty 
+- Find quick 
+solutions 
+- Errors can be 
+corrected 
+- Not vital 
+- Mistakes cost 
+more 
+Functional 
+decision [7] 
+Very short-
+term 
+decision 
+-  Low risk 
+ - Errors are 
+correctable 
+- Better Control  
+- Complexity  
+- Limited 
+perspective 
+ 
+The credit decision in granting credit is one of the most 
+important challenges facing banks and financial institutions 
+[10], especially the decision to grant credit related to SMEs 
+[9] [19], giving-high risk ratios in this sector and ensuring the 
+sustainability of the institution is one of the factors affecting 
+the decision to grant credit, as well as the difficulty of 
+analyzing data related to this category of customers and the 
+high risks of default, and thus directs researchers to find 
+automated solutions for accurate decision-making [11]. 
+Through a literature review, specifically in the field of DSS 
+for SMEs, several studies have been researched, The study in 
+[11] presented a DSS for credit registration of loans for SMEs 
+through the business model wizard that plans the procedures 
+for submitting and updating registration applications. 
+However, the study [11] relied entirely on designing models 
+without creating an integrated system connected to databases 
+that would enable decision-makers to extract evidence 
+accurately. Good decision-making supports the financial 
+strength of companies and maximizes profits [6], the 
+assessment of financial stability and the durability of financial 
+and banking institutions is important for investors in the local 
+and foreign markets [10], as the banking sector has recently 
+suffered an economic crisis due to Covid-19 pandemic, which 
+led to a financial crisis suffered by borrowers and then 
+destabilizing the banking sector, In [10] the authors presented 
+a proposal to develop three multiple models Criteria to aid 
+decision-making in banking sectors are categorized in terms 
+of stability as follows, 'high stability, 'medium stability' and 
+'low stability'. The models were developed using 
+discriminatory analysis and logistic regression, as the study 
+concluded that the banking sectors deteriorated from the "high 
+stability" group to the "low stability" group in that period. The 
+study [6] proposed a residual value decision-making model 
+using industry techniques to improve logistics and proactively 
+predict price and cost to motivate companies to make 
+proactive decisions. The model evaluates decisions based on 
+76
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:22:27 UTC from IEEE Xplore.  Restrictions apply. 
+the life cycle and the use cycle that are tracked through the 
+sensors. The researcher [6] concluded that the data set used in 
+the decision inference processes plays an important role in the 
+accuracy of the adopted decision, which faced a challenge to 
+improve the usefulness of the system. The main challenge to 
+overcome the increasing competition in the market is 
+marketing information, by using the modern technologies of 
+the marketing information DSS and providing the information 
+needed by the organization as a competitive weapon that 
+enables the organization to reach its goals represented in the 
+success of managers, providing distinctive and good products, 
+high productivity, and achieve the effectiveness of the 
+institution [20], the researcher [20] introduced an empirical 
+market assessment model for the motion picture industry, to 
+ticket window office forecasts and support marketing 
+decisions for a new movie after it was produced and before its 
+release to evaluate alternative marketing plans, although many 
+improvements could be made to the model, the empirical 
+results indicate that managers can benefit of quantitative 
+modeling techniques. The encouraging verification results 
+should help overcome deep-rooted skepticism among 
+managers regarding DSS use. Another example of business 
+improvement in the professional world and specifically in 
+agribusiness-based enterprises, the study [21] describes a 
+system to bridge the gap between agricultural and DSS and 
+provides a cloud-based decision support toolkit to better 
+predict simulation scenarios, understand industry-specific 
+interactions, and provide management solutions To help 
+access integration in the company's management information 
+systems. 
+On the other hand, many researchers directed to suggest 
+Machine Learning (ML) models to help predict decision-
+making, specifically in the financial and banking sector [3] 
+[11], the essence of ML is learning from experience, not just 
+doing the required tasks. Banks have large information about 
+customers that enables the bank's operating systems and 
+servers to sort and analyze a large amount of data that belongs 
+to customers so that predictions can be made based on past 
+(historical) behavior and data. For customers to make 
+decisions so that machine learning models can gain experience 
+and continuous learning over time [17], In [17] the researcher 
+presented a DSS with artificial intelligence that can be 
+interpreted to automate lending decisions through the 
+historical database of lending clients in the institution. The 
+main advantage of the study is to provide an automated 
+solution in terms of explaining the reasons that led to the 
+decision-making through the ML model, especially the 
+reasons that led to a negative decision in the lending process, 
+some of the disadvantages in the study is making a wrong 
+decision based on incorrectness in the used dataset, which 
+needs a data cleansing and preprocessing. Credit card 
+evaluation decisions are fundamental and important decisions 
+in banks, where artificial intelligence provides smart solutions 
+to support the decision in this direction [9] [19]. The 
+researcher [9] provided machine learning algorithms to 
+support multi-criteria credit card evaluation decisions through 
+the decision tree algorithm, The main weakness of the study 
+is that the algorithm does not always give a decision tree that 
+covers all cases. Most of the time, the decision tree under 
+construction covers only a few existing classes in which the 
+learning set can be distinguished. The researcher [22] applied 
+AI algorithms in predicting credit scoring to make the 
+appropriate decision about credit. A comparison was made 
+between the decision tree algorithm and the artificial neural 
+network, and the researchers concluded that the two models 
+make modeling uncertainty in the credit rating process 
+possible, and the decision tree model is more suitable for 
+presenting the problem. One of the shortcomings of the study 
+is the lack of many features in the data set, as the study relied 
+on collateral as a variable in calculating the credit rating, and 
+this in turn is not sufficient. The study [3] found that merging 
+more than one predictor variable enables the simple logistic 
+regression model to be extended to the multiple logistic 
+regression model, which affects the model’s ability to obtain 
+multiple observations from the independent variables. It 
+predicts class variables because it processes and validates 
+binary data [3]. AI has helped SMEs by providing solutions in 
+the field of predictive maintenance so that it predicts 
+mechanical failures before they occur to reduce costs and 
+increase process efficiency, as the study [23] developed a 
+prototype for a predictive maintenance dashboard for SMEs 
+based on machine learning algorithms. 
+The problem addressed in the study is due to the presence 
+of many problems facing small and medium enterprises in the 
+business environment that prevent them from accessing bank 
+financing or push commercial banks to classify the loans 
+granted to them as high-risk loans. This comes despite the 
+advantages that SMEs enjoy in advancing economic and 
+social development. To correct these conditions, it is 
+necessary to search for solutions to address the problems that 
+prevent them from accessing bank financing. This study 
+focuses on building three models that are considered DSSs for 
+enterprises. Banking can analyze data and extract decisions 
+using machine learning algorithms and artificial intelligence 
+methods to achieve accurate decision-making models to help 
+de cide  to grant credit to SMEs. 
+III. METHODOLOGY 
+A. Proposed Approaches 
+In this paper, individual classifier models will be built to 
+predict the hypothetical probability of credit decision-making 
+related to SME accounts. The first three individual classifiers 
+have been developed to learn heterogeneous groups, including 
+logistic regression, one of the machine learning algorithms, 
+and one of the most popular classification algorithms [24]. 
+This is because its steps are simple [25]. It is used to classify 
+data into discrete categories after a maximum likelihood 
+estimate after converting the dependent variable to a 
+logarithmic variable concerning the independent variables 
+[26]. In this way, logistic regression estimates the probability 
+of a particular event occurring [27]. One type of boosting is 
+AdaBoost. It is a machine learning algorithm and can be used 
+with many other types of learning algorithms to improve 
+performance [28]. At each iteration, adaptive boosting 
+AdaBoost will select a misclassified data point, thus 
+increasing its weight (in other words reducing the weight of 
+the correct point) So that the next classifier will be more 
+attentive to debugging it. The XGBoost (eXtreme Gradient 
+Boosting) algorithm is also a very popular and widely used 
+boosting algorithm because it is simply very powerful [28] 
+[29]. It is similar to the Gradient Boost algorithm, but it has 
+some additional features that make it much more powerful; 
+Where the training is very fast and can be balanced or 
+distributed across groups, on the other hand, to get more 
+accurate results, we will look at the LightGBM algorithm, 
+another   
+77
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:22:27 UTC from IEEE Xplore.  Restrictions apply. 
+type of boosting algorithm that is faster and sometimes 
+more accurate than XGBoost [30]. What makes LightGBM 
+different is that it uses A unique technique called gradient-
+based unilateral sampling (GOOS) [30]. 
+Finally, the Support Vector Machine (SVM) is on the 
+higher side of computational complexity and requires 
+relatively large resources for computations but provides 
+significantly better results compared to other machine 
+learning methods [24]. To obtain excellent accuracy based on 
+the data used, the SVM working principle is to classify the 
+data, binary classification where it is classified into two 
+groups only, and multiclass classification where it classifies 
+more than one group [31]. 
+Next, training across individual classifiers is discussed, which 
+includes data pre-processing, feature selection, and 
+hyperparameter optimization to improve the accuracy of the 
+prediction model. The SMEs credit data set in this paper is 
+highly dimensional. In addition, after data preprocessing and 
+feature engineering, massive new features are generated. In 
+this paper, a learning model-based trait order method is used 
+to reduce dimensionality and avoid the curse of 
+dimensionality. Figure 1 shows a flowchart of the DSS of 
+SME’s credit model. 
+ 
+Fig. 1. DSS of SMEs granting credit. 
+B. Dataset Description 
+The data obtained in this research was carried out in 
+cooperation with the Jordan Ahli Bank, which is a bank that 
+provides commercial services to customers in Palestine. A 
+type of credit to SMEs (loans, overdrafts, and overdraft 
+accounts). The data set represents a sample extracted from the 
+Internet banking system (AHLI Online), which contains 
+credit requests for customers from SMEs and micro-
+companies sector covering the period between 2000 and 
+2022, which is a mixture of credit requests between direct 
+facilities and indirect facilities that were decided to be 
+accepted or rejected as a result of the credit decision based on 
+studying the company’s variables. Figure 2 shows the 
+percentage of the distribution of accepted and reject SME 
+credit requests and the seriousness of the data set. 
+ 
+Fig. 2. The bar Chart summarizes the percentage of dataset distribution. 
+The data set contains information about lending requests for 
+SMEs customers that are requested through the Ahli Online 
+application, where the sample includes 2016 credit requests 
+from bank customers or non-bank customers, each request 
+contains 20 features that are relied upon to predict decision-
+making, either by approving the grant request or rejecting it, 
+Feature No. 19 represents the credit decision, which is the 
+value that will be relied upon to predict the appropriate 
+decision to grant or reject a credit applicant. This field 
+represents the credit decision taken by the central credit 
+control team in the bank as they are experts in the field of 
+evaluating loan applications and making the appropriate 
+decision for grants or not. 
+ 
+C. Data Preprocessing 
+To obtain a high-accuracy prediction, we studied and 
+analyzed the data set, to infer the extent to which the variables 
+of the data set are related to each other, as well as to deduce 
+what are the features that positively or negatively affect the 
+credit classification and the extent of their impact, Figure 
+number 3 illustrates the relationship and impact of some 
+financial and other features related to the capital and 
+permanence of the business of the company that makes up the 
+data set for the credit applications system on the decision 
+taken in terms of accepting or rejecting the credit request. 
+ 
+Fig. 3. Correlation between credit status and other features. 
+ 
+Figure 3 also illustrates the relationships between the credit 
+request features and the credit decision of SMEs. This figure 
+represents the positive relationship and the negative 
+relationship and the strength of each of them to influence the 
+decision. It is noted that the geographical area in which the 
+company is located has a positive and strong impact on the 
+decision to grant credit, as well as the total salaries of the 
+company, We also note that the date of the company's 
+incorporation is affected by the credit decision, as the figure 
+expresses that the relationship between the date of the 
+company's establishment and the credit decision is negative, 
+meaning that the newly established companies are the least 
+fortunate in obtaining credit, Likewise, if there are any 
+financial dues to the company in its accounts with other 
+banks, it may raise the level of risk to the company and thus 
+negatively affect the granting of the decision. 
+ 
+Figure 4 shows a histogram clarifying how the date of the 
+company’s founding hurts granting credit decisions, we also 
+note in the graph a clear increase in the percentage of loan 
+applications approved for companies that have been 
+established for ten years or more than those requests where the 
+company’s founding date is less than ten years. 
+78
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:22:27 UTC from IEEE Xplore.  Restrictions apply. 
+ 
+Fig. 4. Histogram for company age vs. credit request status. 
+ 
+ 
+Fig. 5. Bar plot presenting company capital VS. credit decision. 
+ 
+Figure 5. shows the impact of the company’s capital on the 
+decision to grant credit, bearing in mind that the large size of 
+the company’s capital reflects the firmness and strength of the 
+company against any economic or financial factors that may 
+affect the company’s performance and reduce profit. 
+Therefore, the graph shows the high acceptance of credit 
+requests for companies with high capital compared to 
+companies with low capital. 
+ 
+A. Feature Engineering and Feature Selection 
+Bulk data engineering is the most famous quote in machine 
+learning for its concern with data quality, features, and the 
+way they are simulated [24]. A good algorithm can improve 
+prediction results, but clean data and reasonable features can 
+make the results much better [25]. Nowadays, more and more 
+people understand the causes of many machine learning 
+failures, not because of the quality of the algorithm, but 
+because of data processing and feature selection [26]. 
+Machine learning first needs to train the data, and each 
+training data (or sample or example) can be considered as a 
+vector of a set of feature sets [27]. 
+Feature selection is also known as variable selection, attribute 
+selection, or variable subset selection. Indicates to select the 
+optimal sub-feature set from the original practical feature set 
+[28]. The model trained from the optimal feature subset 
+obtained after screening has stronger predictive power [29]. 
+The purpose of feature selection is to select the optimal 
+feature subset. 
+ 
+1) Significant level and p-value 
+we will choose the features based on the backward 
+elimination method, this method is used to preserve the 
+important features in the data set that are significant, and the 
+insignificant features will be removed through the P-Value 
+criterion, “The level of significance is the amount of change 
+that the feature will affect towards the final output” [17] as 
+the choice of these features greatly affects the dependent 
+variable on the model and so on to reach features with a level 
+of significance less or equal to 0.05 of the significance level. 
+Figure number 6, shows how the backward elimination 
+algorithm works [30]. 
+ 
+ 
+Fig. 6. Backward elimination algorithm. 
+ 
+After applying the above algorithm, we eliminate three 
+variables that have a high level of insignificancy, those 
+features are (SUSP_AMT, DATE_OVDN, and SCH_DAYS ). 
+ 
+2) VIF (Factor Inflation Variance) calculates 
+Correlation and Multicollinearity 
+The value of the variance inflation factor when it is 
+greater than 5 indicates the existence of collinearity between 
+the independent variables under the data set “the minimum 
+possible value is 1 which indicates no collinearity” [31]. The 
+variance inflation factor is calculated as follows: 
+VIFj  1
+1  R	
+ 
+ 
+
+= coefficient of determination of the variable X extracted 
+from the regression of Y on the independent variables where 
+j=1,2,…….k It is used to measure the degree of variance as 
+an indicator of the accuracy of increasing or decreasing the 
+variance [32]. If the strength of the correlation between the 
+set of independent variables increases, then R rises Thus, the 
+denominator decreases, the variance inflation factor 
+increases, the variance increases, and thus the measurement 
+accuracy decreases [33]. the variables that showed a high 
+correlation were eliminated by calculating VIF [31]. 
+IV. SUPERVISED PREDICTION MODELS 
+A. Logistic Regression  
+The logistic model is one of the most important 
+statistical models for modeling the probability of a particular 
+category or event such as success/failure [29]. Whereas 
+logistic regression uses several predicted variables which can 
+be numeric or categorical and "applies the maximum 
+likelihood estimation after converting the dependent variable 
+to a logarithmic variable" [34]. This can be extended to model 
+several classes of events. It will be assigned a probability 
+between 0 and 1 for a feature detected during learning so that 
+the total equals one [35]. Logistic regression is also known 
+by other names as the Logit model or the general classifier of 
+entropy [36]. Logistic regression is one of the supervised 
+machine learning algorithms for “classification” tasks, as a 
+function of explanatory variables, the probability log changes 
+linearly in the following equation: 
+ 
+Log(odds) = lg ( 
+
+ ) =    ∗   
+ ∗ 
+ 
+⋯   ∗  
+The pre-filtering variable was used by calculating the 
+information value (IV) for each feature to filter them before 
+entering them into the model, IV was used to reduce the 
+variant and To determine the predictive ability of an 
+79
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:22:27 UTC from IEEE Xplore.  Restrictions apply. 
+independent continuous variable x in convergence with the 
+dependent variable Y, it is usually used to reduce the number 
+of variables in the logistic regression if there are a large 
+number of variables to reach the best results and with the least 
+errors of predictability [37]. after excluding the non-
+significant and multilinear variables, the following results are 
+obtained: 
+
+ = 0.924 
+Log-Likelihood: -349.40 
+c-statistic: 0.823 
+ 
+B. XGBoost 
+The XGBoost (Extreme Gradient Boosting) algorithm is 
+an efficient implementation of the Gradient Boosting 
+algorithm. Due to its excellent effect and efficiency in 
+application practice, it is widely respected by the industry, "In 
+the XGBoost model, k number of regression trees are 
+generated to ensure that the prediction of the tree cluster is as 
+close to the actual value (accuracy) as possible and that the 
+generalization power is as high as possible” [38][37]. 
+XGBoost is like GBDT optimization. It is based on the CART 
+tree. It consists of several weak classifiers through a negative 
+gradient optimization framework, an integrated learning 
+method for learning strategies, it is expressed by the 
+following mathematical equation: 
+^  (1(1) 2(2) ⋯  "(")) 
+XGBoost passes all the feature split points and uses the above 
+objective function value as the evaluation function [37]. The 
+specific method is that the value of the objective function 
+after splitting is greater than the gain of the objective function 
+of the single leaf node. Meanwhile, to limit the growth of the 
+tree too deeply, a threshold is added, and division is 
+performed only when the gain is greater than the minimum 
+[38]. 
+ 
+C. LightGMB 
+Light-GBM is an integrated algorithm like 
+XGBoost. It is usually the bottleneck of the XGBoost 
+algorithm for each feature, which requires all samples to 
+calculate the Niki modulus for each potential split point, 
+which greatly increases the amount of computation and 
+reduces the efficiency of the algorithm [37]. To solve this 
+problem when the large data environment is high data lines is 
+time-consuming, the light GBM algorithm uses the graph 
+method to sacrifice a certain accuracy, and uses memory 
+consumption; Use the following methods: first, it does not use 
+Goss (one-sided sampling, one-sided sampling), to calculate 
+the gradient using the sample point used, but the sampler to 
+calculate the gradient; Second, EFB (Exclusive Feature 
+Compilation, Mutually Exclusive Feature Pack), here not all 
+features are used to achieve optimal anchor points, but to 
+package some features to reduce feature dimensions, and this 
+is the reduction in the cost of finding the best cutoff point 
+[37]. This greatly reduces the time complexity of the sample, 
+but in accuracy, through a large number of experiments, 
+LightGBM has been used on some data sets and does not lose 
+accuracy, sometimes even improving accuracy [37]. 
+ 
+D. Support Vectore Machine (SVM) 
+The basic model of the Support Vector Machine 
+(SVM) is to find the best separation level in the feature space 
+to maximize the time interval between positive and negative 
+samples in a training set. SVM is a supervised learning 
+algorithm used to solve binary classification problems [39]. 
+After the kernel method is introduced, SVM can also be used 
+to solve nonlinear problems [32]. Compared to logistic 
+regression and neural networks, support vector machines or 
+SVMs provide a clearer and more efficient way to learn 
+complex nonlinear equations. All the support vector machine 
+does is reduce the square of the parameter vector # base or 
+the square of the length [40]. 
+The purpose of the SVM is for classification, given a sample 
+set containing positive and negative examples (positive 
+sample points and negative sample points), and it’s also used 
+to find a sample cut-off hyperplane, and separate the positive 
+and negative examples In the sample with the hyperplane, but 
+not only the separation between them, but the principle is also 
+to maximize the separation between positive and negative 
+examples [27]. In simple terms, the solution can properly 
+segment the training data set and the hyper-class level with 
+the largest geometric interval. The hyperplane is defined by 
+the following equation:      
+
+  0 [30] 
+ 
+V. MODEL EVALUATION. 
+The area under the curve (AUC) "is the receiver 
+operating characteristic (ROC) curve-based measurement of 
+the alternative discrimination ability. The ROC curve is a 
+complete sensitivity/specificity report for model evaluation" 
+[33]. "In the ROC curve, the false positive rate (FPR) is the 
+horizontal axis, and the true positive rate (TPR) is the vertical 
+axis” [33]. Their formulas are as follows :  
+Recall (Sensitivity or TRP) = 
+&'
+&'()* 
+FPR (1-Specificity) = 
+)'
+)'(&*  
+"ROC and AUC are included. The SPE and SEN measure the 
+accuracy of the classification prediction. Their definitions are 
+as follows" [41]  
+Specificity (TNR) =  
+&*
+)'(&* 
+Accuracy = 
+&'(&*
+&'()'(&*()* 
+Where TP means true positive, FP means false positive, TN 
+means true negative, and FN means false negative. “The F1 
+score is another measurement of the classification problem. 
+Many classification tasks and some machine learning 
+competitions often use an F1 score to measure the final 
+prediction result. It is a harmonic average of accuracy and 
+retrieval rate, its maximum value being 1 and its minimum 
+value being 0” [41]. The F1 score formula is as follows: 
+f1 score = 
+
+∗'+,-./.0∗1,-233
+'+,-./.0(1,-233  
+Confusion Matrix is well-known in the field of machine 
+learning used to test the performance of algorithms. It is 
+containing information and details about the actual 
+classification (classified by humans) and the predictive 
+classification that the classifier predicts [42].  
+VI. RESULT AND ANALYSIS 
+Small and medium enterprises in Palestine face 
+many problems that impede their economic activity and limit 
+80
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:22:27 UTC from IEEE Xplore.  Restrictions apply. 
+the possibility of their continuity. These problems and 
+difficulties are due to considerations of the SMEs being far 
+from the optimal size that achieves internal and external 
+savings, and in a way that drives and increases their 
+competitive capabilities. These problems result from 
+changing economic conditions, labor problems, competitive 
+pressures, and the inability of these companies to lend, which 
+in turn limits the ability of these companies to grow, increase 
+productivity and achieve their economic and financial 
+stability. These obstacles and obstacles surround all 
+institutions, whether small or medium, and even of large size, 
+but they are more severe for SMEs, which leads to weak 
+activity and lower profits. In addition, machine learning 
+approaches, such as LR, XGBoost, LightGBM, and SVM, 
+have proven powerful in improving the predictability of risks 
+and factors that prevent SMEs from getting access to lending 
+and mitigating information asymmetries with 5-fold 
+validation on each classifier. To measure the model's 
+performance in terms of prediction accuracy, we summarize 
+the modeling models' prediction, recall, and F1 values for the 
+four models were calculated results and compare them in the 
+following table. Table 2 lists the accuracy of the classification 
+models used. 
+TABLE II.  AUV, PRECISION, RECALL, AND F1-SCORE OF EACH 
+CLASSIFICATION MODEL. 
+Model AUC Precision Recall F1 Score 
+LR 85.3% 84.50% 76% 78% 
+Gradient 
+Boost 97.4% 97% 98% 97% 
+XGBoost 97.7% 97% 98% 98% 
+SVM 99.2% 99% 99% 99% 
+ 
+The RF tends to provide the best credit decision support 
+prediction for all types of credit applications for SMEs. The 
+overall prediction accuracy of SVM is 99.20%, which 
+indicates that the SVM model is superior to other models in 
+terms of the accuracy of forecasting the decision generated 
+by the credit request. In addition, the accuracy of RF, 
+LightGBM, and XGBoost exceeds almost 90%, indicating 
+that all four methods show the possibility of accurately 
+predicting and supporting SME lending. All models 
+performed excellently for each metric. This also shows that 
+all the models presented in this paper have good effects to 
+support the prediction of the lending decision to SMEs. The 
+SVM model has the best performance, which corresponds to 
+the highest resolution over all other models as summarized in 
+the receiver operating characteristic (ROC) curve in Figure 7. 
+ 
+Fig. 7. ROC curve Evaluation. 
+VII. CONCLUSION AND DISCUSSION 
+Small and medium enterprises are no longer just an 
+idea, but rather more than a reality. It is the experience of 
+many countries that have come to believe that the 
+development of their economies depends primarily on what 
+these SMEs and industries achieve. It should be noted that 
+these institutions need greater efforts and important 
+components that respond to their aspirations and 
+idiosyncrasies, to be able to survive and compete in the local 
+and international markets, as many SMEs were recruited 
+shortly before they collapsed or went bankrupt due to 
+circumstances and bureaucratic obstacles and other financial 
+obstacles, as Some of them remain facing these problems and 
+obstacles. In this paper, we focused the research on the 
+reasons that prevent SMEs from obtaining bank credit, what 
+are the pillars on which the credit decision in banks depends, 
+and how difficult it is to analyze the variables and information 
+of the companies requesting credit. 
+The trend was to search for information systems technologies 
+that simulate human processes (thinking, creativity, intuition 
+... etc.) to improve the effectiveness of decision-making and 
+decision-making. Today's maker is faced with the challenge 
+of data diversity and complexity, which carries many 
+alternatives and hidden opportunities that may enable the 
+organization to achieve a competitive advantage and strategy, 
+but this phenomenon was accompanied by many challenges 
+that made executives and decision-makers afraid to adopt it. 
+To overcome these challenges, artificial intelligence, 
+specifically machine learning, was used to help in making a 
+mechanism for granting credit to the SME sector, due to its 
+promising achievements and its tremendous capabilities in 
+data analysis and access to accurate excerpts to come up with 
+solutions and decisions that will help decision-makers in 
+financial institutions, where we have built a DSS through 
+artificial intelligence algorithms, which has achieved 
+promising results in accurate analysis and prediction of 
+decision helps financial institutions in taking credit decision 
+without bias and automatically and orderly. Among the most 
+important conclusions that we have found about the inability 
+of SMEs to be unable to obtain credit, we summarize them as 
+follows: 
+1- Insufficient capital ratio of the company 
+2- The increase in expenses compared to the profits achieved 
+by the company 
+3- Lack of sufficient guarantees in proportion to the required 
+credit amount 
+4- The recent date of establishment of the company 
+5- The financial stability of the company in the local banking 
+sector. 
+REFERENCES 
+[1] C. F. Oduoza and M. H. Xiong, “A decision support system 
+framework to process customer order enquiries in SMEs,” Int. J. 
+Adv. Manuf. Technol., vol. 42, no. 3–4, pp. 398–407, 2021, doi: 
+10.1007/s00170-008-1596-0. 
+[2] S. Liu, A. H. B. Duffy, R. I. Whitfield, and I. M. Boyle, 
+“Integration of decision support systems to improve decision 
+support performance,” Knowl. Inf. Syst., vol. 22, no. 3, pp. 261–
+286, 2021, doi: 10.1007/s10115-009-0192-4. 
+[3] G. Teles, J. J. P. C. Rodrigues, S. A. Kozlov, R. A. L. Rabêlo, 
+and V. H. C. Albuquerque, “Decision support system on credit 
+operation using linear and logistic regression,” Expert Syst., vol. 
+38, no. 6, pp. 1–19, 2021, doi: 10.1111/exsy.12578. 
+[4] B. J. Gantz, D. Reinsel, and B. D. Shadows, “Big Data , Bigger 
+81
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:22:27 UTC from IEEE Xplore.  Restrictions apply. 
+Digital Shadow s , and Biggest Grow th in the Far East Executive 
+Summary: A Universe of Opportunities and Challenges,” Idc, 
+vol. 2007, no. December 2012, pp. 1–16, 2012. 
+[5] M. Chalal, X. Boucher, and G. Marques, “Decision support 
+system for servitization of industrial SMEs: a modelling and 
+simulation approach,” J. Decis. Syst., vol. 24, no. 4, pp. 355–382, 
+2015, doi: 10.1080/12460125.2015.1074836. 
+[6] J. S. Mboli, D. Thakker, and J. L. Mishra, “An Internet of 
+Things-enabled decision support system for circular economy 
+business model,” Softw. - Pract. Exp., vol. 52, no. 3, pp. 772–
+787, 2022, doi: 10.1002/spe.2825. 
+[7] S. Bensch, C. Kolotzek, C. Helbig, A. Thorenz, and A. Tuma, 
+“Decision support system for the sustainability assessment of 
+critical raw materials in SMEs,” Proc. Annu. Hawaii Int. Conf. 
+Syst. Sci., vol. 2015-March, no. January, pp. 846–855, 2015, doi: 
+10.1109/HICSS.2015.107. 
+[8] M. Ali and J. Cullinane, “A Study to Evaluate the Effectiveness 
+of Simulation based Decision Support System in ERP 
+Implementation in SMEs,” Procedia Technol., vol. 16, no. 
+December, pp. 542–552, 2014, doi: 
+10.1016/j.protcy.2014.10.002. 
+[9] N. F. Matsatsinis, “An intelligent decision support system for 
+credit card assessment based on a machine learning technique,” 
+Oper. Res., vol. 2, no. 2, pp. 243–260, 2022, doi: 
+10.1007/bf02936329. 
+[10] C. Gaganis, F. Pasiouras, M. Doumpos, and C. Zopounidis, 
+“Modelling banking sector stability with multicriteria 
+approaches,” Optim. Lett., vol. 4, no. 4, pp. 543–558, 2010, doi: 
+10.1007/s11590-010-0182-1. 
+[11] R. Tsaih, Y. J. Liu, W. Liu, and Y. L. Lien, “Credit scoring 
+system for small business loans,” Decis. Support Syst., vol. 38, 
+no. 1, pp. 91–99, 2021, doi: 10.1016/S0167-9236(03)00079-4. 
+[12] B. Roy, “Decision science or decision-aid science?,” Eur. J. 
+Oper. Res., vol. 66, no. 2, pp. 184–203, Apr. 1993, doi: 
+10.1016/0377-2217(93)90312-B. 
+[13] L. C. M. Tang, A. Y. T. Leung, and C. W. Y. Wong, “Entropic 
+Risk Analysis by a High Level Decision Support System for 
+Construction SMEs,” J. Comput. Civ. Eng., vol. 24, no. 1, pp. 
+81–94, 2022, doi: 10.1061/(asce)0887-3801(2010)24:1(81). 
+[14] L. C. M. Tang and A. Y. T. Leung, “An entropy-based financial 
+decision support system (e-FDSS) for project analysis in 
+construction SMEs,” Constr. Manag. Econ., vol. 27, no. 5, pp. 
+499–513, 2022, doi: 10.1080/01446190902883049. 
+[15] C. Zopounidis and M. Doumpos, “Developing a multicriteria 
+decision support system for financial classification problems: The 
+FINCLAS system,” Optim. Methods Softw., vol. 8, no. 3–4, pp. 
+277–304, 2020, doi: 10.1080/10556789808805680. 
+[16] M. Ali, Y. Xie, and J. Cullinane, “A decision support system for 
+ERP implementation in small and medium-sized enterprises,” 
+Sociotechnical Enterp. Inf. Syst. Des. Integr., pp. 97–121, 2013, 
+doi: 10.4018/978-1-4666-3664-4.ch007. 
+[17] S. Sachan, J. B. Yang, D. L. Xu, D. E. Benavides, and Y. Li, “An 
+explainable AI decision-support-system to automate loan 
+underwriting,” Expert Syst. Appl., vol. 144, p. 113100, 2020, doi: 
+10.1016/j.eswa.2019.113100. 
+[18] M. Shojaeizadeh, S. Djamasbi, R. C. Paffenroth, and A. C. Trapp, 
+“Detecting task demand via an eye tracking machine learning 
+system,” Decis. Support Syst., vol. 116, pp. 91–101, 2019, doi: 
+10.1016/j.dss.2018.10.012. 
+[19] N. F. Matsatsinis, “CCAS: An intelligent decision support system 
+for credit card assessment,” J. Multi-Criteria Decis. Anal., vol. 
+11, no. 4–5, pp. 213–235, 2020, doi: 10.1002/mcda.329. 
+[20] J. Eliashberg, J.-J. Jonker, M. S. Sawhney, and B. Wierenga, 
+“MOVIEMOD: An Implementable DSS for Prerelease Market 
+Evaluation of motion Pictures.pdf,” Mark. Sci., vol. 19, no. 3, pp. 
+226–243, 2021. 
+[21] R. Rupnik, M. Kukar, P. Vračar, D. Košir, D. Pevec, and Z. 
+Bosnić, “AgroDSS: A decision support system for agriculture 
+and farming,” Comput. Electron. Agric., vol. 161, no. April, pp. 
+260–271, 2019, doi: 10.1016/j.compag.2018.04.001. 
+[22] G. Teles, J. J. P. C. Rodrigues, K. Saleem, S. Kozlov, and R. A. 
+L. Rabêlo, “Machine learning and decision support system on 
+credit scoring,” Neural Comput. Appl., vol. 32, no. 14, pp. 9809–
+9826, 2020, doi: 10.1007/s00521-019-04537-7. 
+[23] D. Kellner, M. Lowin, M. Von Zahn, and J. Chen, “Towards 
+Designing a User-centric Decision Support System for Predictive 
+Maintenance in SMEs Designing a Decision Support System for 
+Predictive Maintenance in SMEs,” Gesellschaft für Inform. e.V. 
+GI., no. 2021, p. 1255, 2021, doi: D-60629 Frankfurt am Main. 
+[24] I. Karachun, L. Vinnichek, and A. Tuskov, “Machine learning 
+methods in finance,” SHS Web Conf., vol. 110, p. 05012, 2021, 
+doi: 10.1051/shsconf/202111005012. 
+[25] L. E. McCoubrey, M. Elbadawi, M. Orlu, S. Gaisford, and A. W. 
+Basit, “Machine learning uncovers adverse drug effects on 
+intestinal bacteria,” Pharmaceutics, vol. 13, no. 7, 2021, doi: 
+10.3390/pharmaceutics13071026. 
+[26] F. Al Mazrouei and H. Nobanee, “Machine Learning in Finance: 
+A Mini-Review,” SSRN Electron. J., no. February, 2020, doi: 
+10.2139/ssrn.3539038. 
+[27] Y. Jiang, “Application and Comparison of Multiple Machine 
+Learning Models in Finance,” Sci. Program., vol. 2022, pp. 1–9, 
+2022, doi: 10.1155/2022/9613554. 
+[28] P. M. Mirete-ferrer, A. Garcia-garcia, and J. S. Baixauli-soler, “A 
+Review on Machine Learning for Asset Management,” pp. 1–46, 
+2022. 
+[29] K. B. Hansen and C. Borch, “The absorption and multiplication 
+of uncertainty in machine-learning-driven finance,” Br. J. Sociol., 
+vol. 72, no. 4, pp. 1015–1029, 2021, doi: 10.1111/1468-
+4446.12880. 
+[30] G. Teles, J. J. P. C. Rodrigues, R. A. L. Rabêlo, and S. A. 
+Kozlov, “Comparative study of support vector machines and 
+random forests machine learning algorithms on credit operation,” 
+Softw. - Pract. Exp., vol. 51, no. 12, pp. 2492–2500, 2021, doi: 
+10.1002/spe.2842. 
+[31] F. Cappa, R. Oriani, E. Peruffo, and I. McCarthy, “Big Data for 
+Creating and Capturing Value in the Digitalized Environment: 
+Unpacking the Effects of Volume, Variety, and Veracity on Firm 
+Performance*,” J. Prod. Innov. Manag., vol. 38, no. 1, pp. 49–67, 
+2021, doi: 10.1111/jpim.12545. 
+[32] T. Zhu, K. Li, P. Herrero, and P. Georgiou, “Deep Learning for 
+Diabetes: A Systematic Review,” IEEE J. Biomed. Heal. 
+Informatics, vol. 25, no. 7, pp. 2744–2757, 2021, doi: 
+10.1109/JBHI.2020.3040225. 
+[33] Y. Li and W. Chen, “Entropy method of constructing a combined 
+model for improving loan default prediction: A case study in 
+China,” J. Oper. Res. Soc., vol. 72, no. 5, pp. 1099–1109, 2021, 
+doi: 10.1080/01605682.2019.1702905. 
+[34] D. Duffie, L. Saita, and K. Wang, “Multi-period corporate default 
+prediction with stochastic covariates,” J. financ. econ., vol. 83, 
+no. 3, pp. 635–665, 2007, doi: 10.1016/j.jfineco.2005.10.011. 
+[35] M. S. Ullal, I. T. Hawaldar, R. Soni, and M. Nadeem, “The Role 
+of Machine Learning in Digital Marketing,” SAGE Open, vol. 11, 
+no. 4, 2021, doi: 10.1177/21582440211050394. 
+[36] M. N. Omri and W. Mribah, “Towards an Intelligent Machine 
+Learning-based Business Approach,” Int. J. Intell. Syst. Appl., 
+vol. 14, no. 1, pp. 1–23, 2022, doi: 10.5815/ijisa.2022.01.01. 
+[37] K. Żbikowski and P. Antosiuk, “A machine learning, bias-free 
+approach for predicting business success using Crunchbase data,” 
+Inf. Process. Manag., vol. 58, no. 4, p. 102555, 2021, doi: 
+10.1016/j.ipm.2021.102555. 
+[38] T. Top, “Machine learning era,” no. October, 2021. 
+[39] Y. P. Huang and M. F. Yen, “A new perspective of performance 
+comparison among machine learning algorithms for financial 
+distress prediction,” Appl. Soft Comput. J., vol. 83, p. 105663, 
+2019, doi: 10.1016/j.asoc.2019.105663. 
+[40] P. Gogas and T. Papadimitriou, “Machine Learning in Economics 
+and Finance,” Comput. Econ., vol. 57, no. 1, 2021, doi: 
+10.1007/s10614-021-10094-w. 
+[41] S. M. Hasan Mahmud, M. A. Hossin, M. Razu Ahmed, S. R. H. 
+Noori, and M. N. I. Sarkar, “Machine learning based unified 
+framework for diabetes prediction,” ACM Int. Conf. Proceeding 
+Ser., pp. 46–50, 2018, doi: 10.1145/3297730.3297737. 
+[42] S. Islam Ayon and M. Milon Islam, “Diabetes Prediction: A Deep 
+Learning Approach,” Int. J. Inf. Eng. Electron. Bus., vol. 11, no. 
+2, pp. 21–27, 2019, doi: 10.5815/ijieeb.2019.02.03. 
+ 
+82
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:22:27 UTC from IEEE Xplore.  Restrictions apply. 

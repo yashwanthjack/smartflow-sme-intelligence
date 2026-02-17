@@ -340,14 +340,14 @@ def schedule_payment(vendor_name: str, amount: float, pay_date: str) -> str:
 # ============================================================================
 
 @tool
-def check_gst_compliance(entity_id: str) -> str:
+def check_gst_compliance(entity_id: str) -> dict:
     """Check GST filing status, ITC availability, and compliance issues.
     
     Args:
         entity_id: The unique identifier of the business entity
         
     Returns:
-        Comprehensive GST compliance report
+        Dictionary containing GST compliance data
     """
     db = get_db_session()
     
@@ -359,83 +359,69 @@ def check_gst_compliance(entity_id: str) -> str:
             latest = (
                 db.query(GSTSummary)
                 .filter(GSTSummary.entity_id == entity_id)
-                .order_by(GSTSummary.filing_period.desc())
+                .order_by(GSTSummary.period.desc())
                 .first()
             )
             
             if latest:
-                return f"""📊 **GST Compliance Report**
-
-**Filing Status ({latest.filing_period})**:
-- Return Type: {latest.return_type}
-- Status: {'✅ Filed' if latest.filing_status == 'filed' else '⏳ Pending'}
-- Filing Date: {latest.filing_date or 'Not yet filed'}
-
-**Tax Summary**:
-- Output Tax: ₹{latest.output_tax:,.0f}
-- Input Tax Credit: ₹{latest.input_tax_credit:,.0f}
-- Net Payable: ₹{latest.net_tax_payable:,.0f}
-"""
+                output_tax = latest.output_tax or 0
+                input_credit = latest.input_credit or 0
+                net_payable = output_tax - input_credit
+                
+                return {
+                    "period": latest.period,
+                    "return_type": latest.return_type,
+                    "filing_status": latest.filing_status,
+                    "filed_on": str(latest.filed_on) if latest.filed_on else None,
+                    "tax_summary": {
+                        "output_tax": output_tax,
+                        "input_credit": input_credit,
+                        "net_payable": net_payable
+                    }
+                }
         except Exception as e:
             pass
     
-    # Mock data
-    return """📊 **GST Compliance Report**
-
-**Filing Status (January 2026)**:
-- GSTR-1 (Sales): ✅ Filed on 11th Jan
-- GSTR-3B (Summary): ✅ Filed on 20th Jan
-- GSTR-2A (Purchase): ⬇️ Downloaded
-
-**Input Tax Credit (ITC)**:
-- Available ITC: ₹1,25,000
-- Blocked ITC: ₹12,000
-
-**⚠️ Blocked ITC Details**:
-- Vendor "XYZ Supplies" (GSTIN: 29AABCU9603R1ZM) has NOT filed GSTR-1
-- Affected Invoices: INV-V-2024-089, INV-V-2024-092
-
-**Recommendation**: Withhold payment to XYZ Supplies until they file their returns.
-"""
+    # Mock data (if no DB or error) - GENERIC FOR NEW ACCOUNTS
+    return {
+        "period": "Current Period",
+        "return_type": "GSTR-1 & 3B",
+        "filing_status": "Unknown / Not Linked",
+        "filed_on": None,
+        "tax_summary": {
+            "output_tax": 0,
+            "input_credit": 0,
+            "net_payable": 0
+        },
+        "itc": {
+            "available": 0,
+            "blocked": 0
+        },
+        "blocked_itc_details": [],
+        "recommendation": "Connect your GST portal or upload GSTR data to see compliance status."
+    }
 
 
 @tool 
-def get_gst_reconciliation(entity_id: str) -> str:
+def get_gst_reconciliation(entity_id: str) -> dict:
     """Reconcile purchase register with GSTR-2A to find mismatches.
     
     Args:
         entity_id: The unique identifier of the business entity
         
     Returns:
-        Reconciliation report with matched and unmatched invoices
+        Dictionary containing reconciliation data
     """
     # In production, this would compare internal records with GSTR-2A downloaded data
-    return """🔍 **GST Reconciliation Report**
-
-**Summary**:
-- Total Purchase Invoices: 45
-- Matched with GSTR-2A: 42
-- Mismatches Found: 3
-
-**Mismatch Details**:
-
-1. **Invoice PO-2024-034** (Vendor: ABC Trading)
-   - Our Record: ₹50,000 + ₹9,000 GST
-   - GSTR-2A: ₹48,000 + ₹8,640 GST
-   - Difference: ₹360 (Vendor reported lower value)
-
-2. **Invoice PO-2024-041** (Vendor: XYZ Supplies)
-   - Our Record: ₹25,000 + ₹4,500 GST
-   - GSTR-2A: NOT FOUND
-   - Issue: Vendor has not filed
-
-3. **Invoice PO-2024-045** (Vendor: Tech Parts Ltd)
-   - Our Record: ₹15,000 + ₹2,700 GST
-   - GSTR-2A: ₹15,000 + ₹2,700 GST (GSTIN Mismatch)
-   - Issue: Wrong GSTIN in our records
-
-**Action Required**: Contact vendors to resolve mismatches before ITC claim.
-"""
+    return {
+        "summary": {
+            "total_invoices": 0,
+            "matched": 0,
+            "mismatches": 0
+        },
+        "mismatches": [],
+        "action_required": "No invoices found for reconciliation. Please upload purchase data."
+    }
 
 
 # ============================================================================
@@ -520,7 +506,13 @@ def calculate_cash_runway(entity_id: str) -> str:
     # Estimate runway from forecast
     cumulative = 0
     runway_days = 0
-    initial_balance = 450000  # Would come from actual balance
+    # Calculate actual balance from DB
+    if db is not None:
+        from app.models.ledger_entry import LedgerEntry
+        from sqlalchemy import func
+        initial_balance = db.query(func.sum(LedgerEntry.amount)).filter(LedgerEntry.entity_id == entity_id).scalar() or 0
+    else:
+        initial_balance = 450000  # Fallback if no DB session
     
     for i, day in enumerate(daily_forecasts):
         cumulative += day['predicted']
@@ -549,3 +541,71 @@ def calculate_cash_runway(entity_id: str) -> str:
 2. Review pending payables and prioritize by vendor criticality
 3. Consider invoice discounting for immediate cash needs
 """
+# ============================================================================
+# AUTONOMOUS ACTION TOOLS
+# ============================================================================
+
+@tool
+def add_ledger_transaction(entity_id: str, description: str, amount: float, category: str = "Other") -> str:
+    """AUTONOMOUS ACTION: Adds a new manual transaction to the ledger.
+    Use this to record payments, expenses, or income found during analysis.
+    
+    Args:
+        entity_id: The unique identifier of the business entity
+        description: Text describing the transaction
+        amount: Numerical value (positive for income, negative for expense)
+        category: Billing category
+    """
+    db = get_db_session()
+    if not db:
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+        
+    try:
+        from app.models.ledger_entry import LedgerEntry
+        import uuid
+        from datetime import datetime
+        
+        new_entry = LedgerEntry(
+            id=str(uuid.uuid4()),
+            entity_id=entity_id,
+            ledger_date=datetime.utcnow(),
+            description=description,
+            amount=amount,
+            category=category,
+            source_type="manual"
+        )
+        db.add(new_entry)
+        db.commit()
+        return f"✅ Autonomous Action Success: Recorded '{description}' for ₹{amount:,.0f}."
+    except Exception as e:
+        return f"❌ Autonomous Action Failed: {str(e)}"
+    finally:
+        pass
+
+@tool
+def update_invoice_status(invoice_id: str, new_status: str) -> str:
+    """AUTONOMOUS ACTION: Updates the status of an invoice.
+    Use this after identifying a payment or sending a reminder.
+    
+    Args:
+        invoice_id: The ID of the invoice to update
+        new_status: One of: 'paid', 'reminded', 'disputed', 'pending'
+    """
+    db = get_db_session()
+    if not db:
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+        
+    try:
+        from app.models.invoice import Invoice
+        invoice = db.query(Invoice).filter(Invoice.id == invoice_id).first()
+        if not invoice:
+            return f"❌ Invoice {invoice_id} not found."
+            
+        old_status = invoice.status
+        invoice.status = new_status
+        db.commit()
+        return f"✅ Autonomous Action Success: Invoice {invoice.invoice_number} moved from {old_status} to {new_status}."
+    except Exception as e:
+        return f"❌ Autonomous Action Failed: {str(e)}"

@@ -54,5 +54,7 @@ class LenderDecisionAgent(BaseAgent):
         
         response = llm.invoke(full_prompt)
         
-        self.log_action("underwrite", {"task": "underwriting", "response": response.content})
-        return {"output": response.content, "agent": self.name}
+        output = response.content if hasattr(response, 'content') else str(response)
+        
+        self.log_action("underwrite", {"task": "underwriting", "response": output})
+        return {"output": output, "agent": self.name}

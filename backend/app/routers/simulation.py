@@ -13,7 +13,7 @@ from app.models.ledger_entry import LedgerEntry
 from app.auth import get_current_active_user
 from app.models.user import User
 
-router = APIRouter(prefix="/simulate", tags=["Simulation"])
+router = APIRouter(tags=["Simulation"])
 
 
 class ScenarioInput(BaseModel):
@@ -143,22 +143,69 @@ async def run_scenario(
     # Risk assessment
     risk_level, status = get_risk_level(new_runway)
     
-    # Generate 12-month projection
+    # Monte Carlo Simulation
+    # Run 1000 simulations with random variations in burn and revenue
+    simulations = []
+    
+    import numpy as np
+    
+    for _ in range(1000):
+        sim_balance = adjusted_cash
+        sim_path = []
+        
+        # Add random noise to monthly burn (±10%) and revenue (±15%)
+        # Identify base components
+        base_burn = current_burn + hiring_cost + marketing_delta - revenue_offset
+        
+        for month in range(1, 13):
+            # Randomize monthly fluctuation
+            # Burn might vary by 5-10%
+            monthly_burn_noise = np.random.normal(0, base_burn * 0.05) 
+            # Revenue/Collections might vary by 10-15% (affecting net burn)
+            # We treat 'burn' as net outflow here
+            
+            simulated_burn = base_burn + monthly_burn_noise
+            sim_balance -= simulated_burn
+            
+            if sim_balance < 0:
+                sim_balance = 0
+            
+            sim_path.append(sim_balance)
+        
+        simulations.append(sim_path)
+    
+    # Calculate median path for projection
+    simulations_array = np.array(simulations)
+    median_path = np.median(simulations_array, axis=0)
+    p10_path = np.percentile(simulations_array, 10, axis=0) # Pessimistic
+    
+    # Generate 12-month projection from median
     projection = []
-    running_balance = adjusted_cash
-    for i in range(1, 13):
-        running_balance -= new_burn
-        if running_balance < 0:
-            running_balance = 0
-        projection.append(ProjectionPoint(
-            month=f"Month {i}",
-            balance=round(running_balance, 0),
+    for i, balance in enumerate(median_path):
+         projection.append(ProjectionPoint(
+            month=f"Month {i+1}",
+            balance=round(float(balance), 0),
             burn=round(new_burn, 0),
             threshold=500000
         ))
+
+    # Recalculate runway based on Monte Carlo (P10 - conservative)
+    # If P10 hits 0 at month X, that's the conservative runway
+    conservative_runway = 12.0
+    for i, bal in enumerate(p10_path):
+        if bal <= 0:
+            conservative_runway = float(i) + (p10_path[i-1] / (p10_path[i-1] - bal)) if i > 0 else 0.0
+            break
+            
+    # If conservative runway is still > 12, check linear
+    if conservative_runway >= 12 and new_burn > 0:
+        conservative_runway = calculate_runway(adjusted_cash, new_burn)
+
+    # Use conservative runway for risk assessment
+    risk_runway = conservative_runway
     
-    # Generate recommendation
-    recommendation = generate_recommendation(scenario, current_runway, new_runway)
+    # Generate recommendation using conservative estimates from Monte Carlo
+    recommendation = generate_recommendation(scenario, current_runway, risk_runway)
     
     # Impact summary
     runway_change = current_runway - new_runway

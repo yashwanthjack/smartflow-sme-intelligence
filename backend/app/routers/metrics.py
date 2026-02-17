@@ -9,12 +9,28 @@ from app.models.user import User
 from app.models.ledger_entry import LedgerEntry
 from app.models.counterparty import Counterparty
 from app.models.invoice import Invoice
+from app.models.gst_summary import GSTSummary
 from app.routers.auth import get_current_active_user
 
 router = APIRouter(
-    prefix="/data/metrics",
+    prefix="/metrics",
     tags=["metrics"]
 )
+
+from app.services.health_service import HealthService
+
+@router.get("/health/{entity_id}")
+async def get_health_pulse(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """Get the composite Health Pulse score."""
+    if current_user.entity_id != entity_id and current_user.role != "admin":
+         raise HTTPException(status_code=403, detail="Unauthorized")
+         
+    service = HealthService(db)
+    return service.calculate_health_pulse(entity_id)
 
 @router.get("/summary/{entity_id}")
 def get_summary_metrics(
@@ -64,13 +80,28 @@ def get_gross_volume(
     Get Gross Volume metrics broken down by subcategory.
     """
     thirty_days_ago = datetime.now() - timedelta(days=30)
+    sixty_days_ago = datetime.now() - timedelta(days=60)
     
-    # Total Volume (All Inflows)
+    # Total Volume (All Inflows) - Current period
     total_volume = db.query(func.sum(LedgerEntry.amount)).filter(
         LedgerEntry.entity_id == entity_id,
         LedgerEntry.amount > 0,
         LedgerEntry.ledger_date >= thirty_days_ago
     ).scalar() or 0
+    
+    # Previous period volume for comparison
+    prev_volume = db.query(func.sum(LedgerEntry.amount)).filter(
+        LedgerEntry.entity_id == entity_id,
+        LedgerEntry.amount > 0,
+        LedgerEntry.ledger_date >= sixty_days_ago,
+        LedgerEntry.ledger_date < thirty_days_ago
+    ).scalar() or 0
+    
+    # Calculate real month-over-month change
+    if prev_volume > 0:
+        change_pct = round(((total_volume - prev_volume) / prev_volume) * 100, 1)
+    else:
+        change_pct = 0 if total_volume == 0 else 100.0
     
     # Breakdown by subcategory
     breakdown_query = db.query(
@@ -89,7 +120,7 @@ def get_gross_volume(
     
     return {
         "totalVolume": total_volume,
-        "change": 15, # Mocked change for now
+        "change": change_pct,
         "breakdown": breakdown
     }
 
@@ -100,11 +131,36 @@ def get_payments_waterfall(
     current_user: User = Depends(get_current_active_user)
 ):
     """
-    Get payments waterfall (Initiated -> Authorized -> Successful).
-    Since we don't have granular transaction states in Ledger, we simulate reliable ratios based on real volume.
+    Get payments/collections waterfall.
+    Prioritizes Invoice data (Invoiced -> Paid) if available. 
+    Otherwise falls back to raw Ledger revenue (where Initiated = Successful).
     """
-    # Base real volume
     thirty_days_ago = datetime.now() - timedelta(days=30)
+    
+    # 1. Try Invoice Data first (Better for "Funnel" view)
+    total_invoiced = db.query(func.sum(Invoice.total_amount)).filter(
+        Invoice.entity_id == entity_id,
+        Invoice.invoice_type == 'receivable',
+        Invoice.invoice_date >= thirty_days_ago
+    ).scalar() or 0
+    
+    if total_invoiced > 0:
+        total_collected = db.query(func.sum(Invoice.paid_amount)).filter(
+            Invoice.entity_id == entity_id,
+            Invoice.invoice_type == 'receivable',
+            Invoice.invoice_date >= thirty_days_ago
+        ).scalar() or 0
+        
+        return [
+            {"label": "Invoiced", "value": total_invoiced},
+            {"label": "Due", "value": total_invoiced}, # Assuming all due for simplicity or filter by due_date
+            {"label": "Collected", "value": total_collected},
+            {"label": "Settled", "value": total_collected}, 
+            {"label": "Completed", "value": total_collected}
+        ]
+
+    # 2. Fallback to Ledger (Cash Basis)
+    # If we only have bank data, "Initiated" isn't visible, only "Successful"
     successful_volume = db.query(func.sum(LedgerEntry.amount)).filter(
         LedgerEntry.entity_id == entity_id,
         LedgerEntry.amount > 0,
@@ -112,14 +168,141 @@ def get_payments_waterfall(
         LedgerEntry.ledger_date >= thirty_days_ago
     ).scalar() or 0
     
-    # extrapolating funnel
+    # Honest view: If we only see success, show success. 
+    # Don't hallucinate "Initiated" values.
     return [
-        {"label": "Initiated", "value": successful_volume * 1.4},
-        {"label": "Authorized", "value": successful_volume * 1.25},
+        {"label": "Initiated", "value": successful_volume},
+        {"label": "Authorized", "value": successful_volume},
         {"label": "Successful", "value": successful_volume},
-        {"label": "Payouts", "value": successful_volume * 0.95}, # Platform fees
-        {"label": "Completed", "value": successful_volume * 0.95}
+        {"label": "Payouts", "value": successful_volume}, 
+        {"label": "Completed", "value": successful_volume}
     ]
+
+@router.get("/income-tracker/{entity_id}")
+def get_income_tracker(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get weekly income tracking (Last 7 days).
+    """
+    today = datetime.now().date()
+    start_date = today - timedelta(days=6) # Last 7 days including today
+    
+    # Initialize all days with 0
+    daily_income = { (start_date + timedelta(days=i)): 0 for i in range(7) }
+    
+    # Fetch income entries
+    entries = db.query(LedgerEntry).filter(
+        LedgerEntry.entity_id == entity_id,
+        LedgerEntry.amount > 0,
+        LedgerEntry.ledger_date >= start_date
+    ).all()
+    
+    for e in entries:
+        d = e.ledger_date
+        if d in daily_income:
+            daily_income[d] += e.amount
+            
+    # Format for chart
+    chart_data = []
+    days_map = {0: 'M', 1: 'T', 2: 'W', 3: 'T', 4: 'F', 5: 'S', 6: 'S'}
+    
+    max_val = 0
+    max_day_idx = -1
+    
+    for idx, (date_obj, col_val) in enumerate(daily_income.items()):
+        val = float(col_val)
+        chart_data.append({
+            "day": days_map[date_obj.weekday()],
+            "value": val,
+            "fullDate": date_obj.isoformat(),
+            "highlight": False # will set max below
+        })
+        if val >= max_val and val > 0:
+            max_val = val
+            max_day_idx = idx
+            
+    if max_day_idx >= 0:
+        chart_data[max_day_idx]["highlight"] = True
+        
+    # Calculate % change from previous week
+    prev_start = start_date - timedelta(days=7)
+    prev_week_income = db.query(func.sum(LedgerEntry.amount)).filter(
+        LedgerEntry.entity_id == entity_id,
+        LedgerEntry.amount > 0,
+        LedgerEntry.ledger_date >= prev_start,
+        LedgerEntry.ledger_date < start_date
+    ).scalar() or 0
+    
+    current_week_income = sum(d["value"] for d in chart_data)
+    
+    if prev_week_income > 0:
+        change_pct = int(((current_week_income - prev_week_income) / prev_week_income) * 100)
+    else:
+        change_pct = 100 if current_week_income > 0 else 0
+        
+    return {
+        "weeklyData": chart_data,
+        "changePercent": change_pct
+    }
+
+@router.get("/insights/{entity_id}")
+def get_smart_insights(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get dynamic smart insights based on data.
+    """
+    # 1. Check Cash Flow trend
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+    sixty_days_ago = datetime.now() - timedelta(days=60)
+    
+    current_inflow = db.query(func.sum(LedgerEntry.amount)).filter(
+        LedgerEntry.entity_id == entity_id,
+        LedgerEntry.amount > 0,
+        LedgerEntry.ledger_date >= thirty_days_ago
+    ).scalar() or 0
+    
+    prev_inflow = db.query(func.sum(LedgerEntry.amount)).filter(
+        LedgerEntry.entity_id == entity_id,
+        LedgerEntry.amount > 0, 
+        LedgerEntry.ledger_date >= sixty_days_ago,
+        LedgerEntry.ledger_date < thirty_days_ago
+    ).scalar() or 0
+    
+    # Default insight
+    insight = {
+        "percentage": 0,
+        "title": "Data gathering in progress",
+        "description": "Upload more financial data to unlock AI-driven efficiency insights."
+    }
+    
+    if current_inflow > prev_inflow and prev_inflow > 0:
+        growth = int(((current_inflow - prev_inflow) / prev_inflow) * 100)
+        insight = {
+            "percentage": growth,
+            "title": "Revenue Growth",
+            "description": f"Your revenue has grown by {growth}% compared to last month. Great job!"
+        }
+    elif current_inflow == 0 and prev_inflow == 0:
+        insight = {
+            "percentage": 0,
+            "title": "No Recent Activity",
+            "description": "No meaningful inflows detected recently. Upload bank statements to track performance."
+        }
+    elif current_inflow < prev_inflow:
+         drop = int(((prev_inflow - current_inflow) / prev_inflow) * 100)
+         insight = {
+            "percentage": drop,
+            "title": "Revenue Dip",
+            "description": f"Revenue is down by {drop}% this month. Check for overdue invoices or seasonality."
+         }
+         
+    return insight
 
 @router.get("/customers/{entity_id}")
 def get_customer_metrics(
@@ -147,6 +330,64 @@ def get_customer_metrics(
         "new_customers": new_customers,
         "growth_pct": round((new_customers / total_customers * 100), 1) if total_customers else 0
     }
+
+@router.get("/gst-compliance/{entity_id}")
+def get_gst_compliance(
+    entity_id: str,
+    db: Session = Depends(get_db),
+    current_user: User = Depends(get_current_active_user)
+):
+    """
+    Get GST Compliance metrics from real GSTSummary records.
+    """
+    # Helper to get latest return
+    def get_latest_return(rtype):
+        return db.query(GSTSummary).filter(
+            GSTSummary.entity_id == entity_id,
+            GSTSummary.return_type == rtype
+        ).order_by(GSTSummary.period_end.desc()).first()
+
+    gstr1 = get_latest_return('GSTR-1')
+    gstr3b = get_latest_return('GSTR-3B')
+    
+    today = datetime.now()
+    
+    # GSTR-1 Logic
+    if gstr1:
+        g1_status = gstr1.filing_status.title() # Filed/Pending
+        g1_date = gstr1.filed_on.strftime('%d %b') if gstr1.filed_on else "Pending"
+        g1_filed = gstr1.filing_status.lower() == 'filed'
+    else:
+        g1_status = "Unknown"
+        g1_date = "-"
+        g1_filed = False
+        
+    # GSTR-3B Logic
+    if gstr3b:
+        g3_status = gstr3b.filing_status.title()
+        if g3_status == 'Filed':
+            g3_label = "Filed"
+            g3_color = "success"
+            g3_date = gstr3b.filed_on.strftime('%d %b') if gstr3b.filed_on else "-"
+        else:
+            # check due date (approx 20th of next month)
+            g3_label = "Pending"
+            g3_color = "warning"
+            g3_date = "Due soon"
+    else:
+        g3_status = "Unknown"
+        g3_label = "No Data"
+        g3_date = "-"
+        g3_color = "gray"
+
+    return {
+        "gstr1": { "status": g1_status, "date": g1_date, "filed": g1_filed },
+        "gstr3b": { "status": g3_status, "label": g3_label, "date": g3_date, "color": g3_color },
+        "itc_match": 0, # TODO: Calculate from 2A vs 3B
+        "pending_amount": 0,
+        "pending_vendors": 0
+    }
+
 
 def _get_color_for_cat(cat):
     if cat == 'online': return 'green'

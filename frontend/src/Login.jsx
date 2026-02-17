@@ -34,161 +34,136 @@ export default function Login() {
     }
 
     return (
-        <div style={{
+        <div className="flex items-center justify-center min-h-screen" style={{
+            background: 'radial-gradient(circle at top left, #f0fdf4 0%, #fff 50%, #eff6ff 100%)',
             minHeight: '100vh',
             display: 'flex',
             alignItems: 'center',
-            justifyContent: 'center',
-            background: 'var(--bg-primary)',
-            padding: 20
+            justifyContent: 'center'
         }}>
-            <div className="card" style={{
-                width: '100%',
-                maxWidth: 400,
-                padding: 40,
-                textAlign: 'center'
-            }}>
-                {/* Logo */}
-                <div style={{ marginBottom: 24 }}>
+            <div className="card" style={{ width: '100%', maxWidth: '420px', padding: '40px' }}>
+                {/* Logo & Header */}
+                <div className="flex flex-col items-center mb-8" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: '32px' }}>
                     <div style={{
-                        width: 60, height: 60,
-                        background: 'linear-gradient(135deg, var(--accent-primary) 0%, var(--accent-secondary) 100%)',
-                        borderRadius: 16,
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        margin: '0 auto 16px'
+                        width: '56px', height: '56px',
+                        background: 'linear-gradient(135deg, var(--accent-secondary) 0%, #ea580c 100%)',
+                        borderRadius: '16px',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        marginBottom: '16px',
+                        boxShadow: '0 10px 25px -5px rgba(249, 115, 22, 0.4)'
                     }}>
-                        <Zap size={32} color="white" />
+                        <Zap size={32} color="white" fill="white" />
                     </div>
-                    <h1 style={{ fontSize: 24, marginBottom: 4 }}>SmartFlow OS</h1>
-                    <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-                        {isRegister ? 'Create your account' : 'Sign in to continue'}
+                    <h1 style={{ fontSize: '28px', fontWeight: '800', color: '#111827', letterSpacing: '-0.5px', margin: '0 0 8px 0' }}>
+                        SmartFlow OS
+                    </h1>
+                    <p style={{ color: '#6b7280', margin: 0, fontSize: '15px' }}>
+                        {isRegister ? 'Create your workspace' : 'Welcome back, Founder'}
                     </p>
                 </div>
 
                 {/* Form */}
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
                     {isRegister && (
-                        <div style={{ position: 'relative', marginBottom: 16 }}>
-                            <User size={18} style={{ position: 'absolute', left: 14, top: 14, color: 'var(--text-muted)' }} />
+                        <div style={{ position: 'relative' }}>
+                            <User size={18} style={{ position: 'absolute', left: '12px', top: '14px', color: '#9ca3af' }} />
                             <input
                                 type="text"
                                 placeholder="Full Name"
                                 value={fullName}
                                 onChange={(e) => setFullName(e.target.value)}
-                                style={{
-                                    width: '100%',
-                                    padding: '14px 14px 14px 44px',
-                                    background: 'var(--bg-secondary)',
-                                    border: '1px solid var(--glass-border)',
-                                    borderRadius: 8,
-                                    color: 'white',
-                                    fontSize: 14
-                                }}
+                                className="input"
+                                style={{ paddingLeft: '40px', color: '#111827' }}
                             />
                         </div>
                     )}
 
-                    <div style={{ position: 'relative', marginBottom: 16 }}>
-                        <Mail size={18} style={{ position: 'absolute', left: 14, top: 14, color: 'var(--text-muted)' }} />
+                    <div style={{ position: 'relative' }}>
+                        <Mail size={18} style={{ position: 'absolute', left: '12px', top: '14px', color: '#9ca3af' }} />
                         <input
                             type="email"
-                            placeholder="Email"
+                            placeholder="work@company.com"
                             value={email}
                             onChange={(e) => setEmail(e.target.value)}
                             required
-                            style={{
-                                width: '100%',
-                                padding: '14px 14px 14px 44px',
-                                background: 'var(--bg-secondary)',
-                                border: '1px solid var(--glass-border)',
-                                borderRadius: 8,
-                                color: 'white',
-                                fontSize: 14
-                            }}
+                            className="input"
+                            style={{ paddingLeft: '40px', color: '#111827' }}
                         />
                     </div>
 
-                    <div style={{ position: 'relative', marginBottom: 24 }}>
-                        <Lock size={18} style={{ position: 'absolute', left: 14, top: 14, color: 'var(--text-muted)' }} />
+                    <div style={{ position: 'relative' }}>
+                        <Lock size={18} style={{ position: 'absolute', left: '12px', top: '14px', color: '#9ca3af' }} />
                         <input
                             type="password"
                             placeholder="Password"
                             value={password}
                             onChange={(e) => setPassword(e.target.value)}
                             required
-                            style={{
-                                width: '100%',
-                                padding: '14px 14px 14px 44px',
-                                background: 'var(--bg-secondary)',
-                                border: '1px solid var(--glass-border)',
-                                borderRadius: 8,
-                                color: 'white',
-                                fontSize: 14
-                            }}
+                            className="input"
+                            style={{ paddingLeft: '40px', color: '#111827' }}
                         />
                     </div>
 
                     {error && (
                         <div style={{
-                            padding: 12,
-                            background: 'rgba(239, 68, 68, 0.1)',
-                            border: '1px solid rgba(239, 68, 68, 0.2)',
-                            borderRadius: 8,
-                            color: 'var(--danger)',
-                            fontSize: 13,
-                            marginBottom: 16,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '12px', fontSize: '14px',
+                            color: '#dc2626', background: '#fef2f2',
+                            borderRadius: '8px', border: '1px solid #fee2e2'
                         }}>
-                            <AlertCircle size={16} /> {error}
+                            <AlertCircle size={16} />
+                            <span>{error}</span>
                         </div>
                     )}
 
                     {success && (
                         <div style={{
-                            padding: 12,
-                            background: 'rgba(16, 185, 129, 0.1)',
-                            border: '1px solid rgba(16, 185, 129, 0.2)',
-                            borderRadius: 8,
-                            color: 'var(--success)',
-                            fontSize: 13,
-                            marginBottom: 16,
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: 8
+                            display: 'flex', alignItems: 'center', gap: '8px',
+                            padding: '12px', fontSize: '14px',
+                            color: '#16a34a', background: '#f0fdf4',
+                            borderRadius: '8px', border: '1px solid #dcfce7'
                         }}>
-                            <CheckCircle size={16} /> {success}
+                            <CheckCircle size={16} />
+                            <span>{success}</span>
                         </div>
                     )}
 
                     <button
                         type="submit"
-                        className="btn btn-primary"
                         disabled={loading}
-                        style={{ width: '100%', padding: 14, fontSize: 15 }}
+                        className="btn btn-primary"
+                        style={{
+                            height: '48px',
+                            fontSize: '16px',
+                            marginTop: '8px',
+                            background: '#111827',
+                            justifyContent: 'center',
+                            width: '100%'
+                        }}
                     >
-                        {loading ? 'Please wait...' : (isRegister ? 'Create Account' : 'Sign In')}
+                        {loading ? 'Processing...' : (isRegister ? 'Create Account' : 'Sign In')}
+                        {!loading && <Zap size={18} style={{ marginLeft: '6px' }} />}
                     </button>
                 </form>
 
-                {/* Toggle */}
-                <div style={{ marginTop: 24, color: 'var(--text-muted)', fontSize: 13 }}>
-                    {isRegister ? 'Already have an account?' : "Don't have an account?"}{' '}
-                    <button
-                        onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess('') }}
-                        style={{
-                            background: 'none',
-                            border: 'none',
-                            color: 'var(--accent-primary)',
-                            cursor: 'pointer',
-                            textDecoration: 'underline'
-                        }}
-                    >
-                        {isRegister ? 'Sign In' : 'Register'}
-                    </button>
+                {/* Footer */}
+                <div style={{ marginTop: '32px', textAlign: 'center' }}>
+                    <p style={{ fontSize: '14px', color: '#6b7280', margin: 0 }}>
+                        {isRegister ? 'Already have an account?' : "New to SmartFlow?"}{' '}
+                        <button
+                            onClick={() => { setIsRegister(!isRegister); setError(''); setSuccess('') }}
+                            style={{
+                                color: '#ea580c',
+                                fontWeight: '600',
+                                background: 'transparent',
+                                border: 'none',
+                                cursor: 'pointer',
+                                fontSize: '14px'
+                            }}
+                        >
+                            {isRegister ? 'Sign In' : 'Join Now'}
+                        </button>
+                    </p>
                 </div>
             </div>
         </div>

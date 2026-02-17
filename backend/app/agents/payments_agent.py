@@ -1,13 +1,14 @@
 # Payments Agent - Optimizes Days Payable Outstanding (DPO)
 from typing import Dict, Any
-from langchain.agents import create_agent
+
 
 from app.agents.base_agent import BaseAgent
 from app.agents.llm import get_llm
 from app.agents.tools import (
     get_cash_forecast,
     get_pending_payables,
-    schedule_payment
+    schedule_payment,
+    add_ledger_transaction
 )
 
 
@@ -40,30 +41,51 @@ class PaymentsAgent(BaseAgent):
     
     @property
     def tools(self) -> list:
-        return [get_cash_forecast, get_pending_payables, schedule_payment]
+        return [get_cash_forecast, get_pending_payables, schedule_payment, add_ledger_transaction]
     
     def run(self, task: str = "Create an optimized payment schedule for the next 30 days") -> Dict[str, Any]:
-        """Execute the payments agent."""
-        llm = get_llm()
+        """Execute the payments agent using direct tool invocation."""
+        from app.agents.tools import set_db_session
+        from app.db.database import SessionLocal
         
-        agent = create_agent(
-            llm, 
-            self.tools, 
-            system_prompt=PAYMENTS_SYSTEM_PROMPT
-        )
+        db = SessionLocal()
+        set_db_session(db)
         
-        result = agent.invoke({
-            "messages": [{"role": "user", "content": f"Entity ID: {self.entity_id}. Task: {task}"}]
-        })
-        
-        self.log_action("payment_schedule_generated", {"result": result})
-        
-        if hasattr(result, 'get'):
-            output = result.get("output", str(result))
-        else:
-            output = str(result)
+        try:
+            # Step 1: Get pending payables
+            payables_report = get_pending_payables.invoke(self.entity_id)
             
-        return {"output": output, "agent": self.name}
+            # Step 2: Get cash forecast
+            try:
+                forecast_report = get_cash_forecast.invoke({"entity_id": self.entity_id, "days": 30})
+            except Exception:
+                forecast_report = "Cash forecast unavailable."
+            
+            # Step 3: Compose analysis
+            output = f"""💰 **Payments Agent Analysis**
+
+{payables_report}
+
+---
+
+**Cash Flow Outlook:**
+{forecast_report}
+
+---
+
+**Payment Strategy:**
+1. 🔴 **Critical payments** (due within 3 days): Pay immediately to avoid penalties
+2. 🟡 **Medium priority** (due within 7 days): Schedule for day before due date
+3. 🟢 **Low priority** (due in 10+ days): Can be delayed if cash is tight
+4. 💡 Maintain minimum balance of ₹50,000 as safety buffer
+"""
+            self.log_action("payment_schedule_generated", {"result": output[:500]})
+            return {"output": output, "agent": self.name}
+        except Exception as e:
+            output = f"Agent Error: {str(e)}"
+            return {"output": output, "agent": self.name}
+        finally:
+            db.close()
 
 
 def run_payments_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
