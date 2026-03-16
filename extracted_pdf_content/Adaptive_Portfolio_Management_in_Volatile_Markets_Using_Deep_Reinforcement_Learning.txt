@@ -1,0 +1,542 @@
+Department of Information Technology
+National Institute of Technology
+Raipur (C.G.), India
+abhishekgiri1617@gmail.com
+Department of Computer Science and Engineering
+National Institute of Technology
+Raipur (C.G.), India
+psingh.cs@nitrr.ac.in
+Abstract—Asset prices are highly volatile as the market is
+driven by macro-economic events, sentiments and geopolitics,
+a lot of time is spent understanding the changing dynamics
+to be one step ahead in making investment and trading calls.
+Traditionally, these dynamic conditions have caused troubles to
+the traditional portfolio management system, which is based
+on static models, to allocate suboptimally. Such limitations are
+addressed in this research by using Deep Reinforcement Learning
+real time portfolio optimization earning (DRL). Specifically, we
+explore three DRL algorithms: Advantage Actor-Critic (A2C),
+Deep Deterministic Policy Gradient (DDPG), Proximal Policy
+Optimization(PPO). In this research, the DDPG outperforms the
+others in terms of its annual return 23.1%, the PPO has the
+highest Sharpe ratio 0.998 for risk adjusted returns and A2C
+achieves long-term stability with balanced risk.
+Index Terms—Deep reinforcement learning, portfolio manage-
+ment, machine learning, stocks.
+I. I NTRODUCTION
+Portfolio management has long relied on models like
+Mean-Variance Optimization which aim to balance return
+and risk using historical averages [1]. While these traditional
+methods can be effective in stable market conditions, they
+often fail to adapt when faced with the complexities and rapid
+changes of modern financial environments [2]. The limitations
+of static models have led to a shift toward more dynamic,
+data-driven strategies capable of learning and evolving in real
+time. Reinforcement Learning (RL), to be precise Actor-Critic
+models, has evolved as a powerful alternative [3]. Unlike
+traditional approaches, RL algorithms continuously optimize
+asset allocations by interacting with a simulated financial
+environment, allowing them to adapt to changing market
+dynamics and offering an edge over static techniques [4].
+This research explores a system for managing portfolios
+using Deep Reinforcement Learning (DRL), making use
+of significant reinforcement learning techniques such as
+Proximal Policy Optimization (PPO), Deep Deterministic
+Policy Gradient (DDPG), and Advantage Actor-Critic (A2C)
+[5], [6]. These models are designed to make adaptive
+investment decisions, dynamically adjusting asset weights to
+balance returns and risk in a continuous action space [7].
+By leveraging the Actor-Critic architecture, the framework
+learns to optimize long-term performance and respond
+effectively to volatile market conditions [8]. In this research,
+the DRL algorithms are applied to a financial dataset with
+major stock index, i.e., the Dow Jones Industrial Average
+(DJIA) [9]. The adaptability of DRL models is further
+enhanced through a load-on-demand mechanism, which
+ensures efficient handling of extensive datasets, reducing
+computational overhead [10]. Using important measures like
+as the Sharpe ratio, cumulative returns, and Max drawdown,
+our study compares the performance of different models
+and shows that the DRL-based system performs better than
+conventional approaches and provides a flexible solution
+for a range of risk profiles and investment objectives. The
+results of this study highlight how reinforcement learning
+has the potential to revolutionize portfolio management by
+offering a strong and flexible framework that can handle the
+intricacies of contemporary financial markets. Determining
+how to distribute resources across a collection of assets
+in order to maximize returns while limiting risk is the
+fundamental problem of portfolio management. Traditional
+models often fail in their adaptability and rely heavily on
+assumptions from historical data. In this study, our objective
+is to create an adaptive portfolio management model using
+reinforcement learning. The goal is to dynamically adjust
+asset weights based on historical market data, which provides
+a continuous feedback loop that enables the model to improve
+allocation decisions over time. This research brings forward
+a comprehensive RL-based approach for dynamic portfolio
+management using Actor-Critic models, comparing A2C,
+DDPG, and PPO in terms of their strengths, weaknesses,
+and performance evaluation indicators including maximum
+drawdown, Sharpe ratio and annual return to evaluate their
+capacity to dynamically balance risk and return, ultimately
+providing insights into the practicality of reinforcement
+learning in financial management.
+The goal of this paper is to develop and evaluate a rein-
+forcement learning (RL) framework for portfolio management,
+leveraging advanced algorithms to optimize asset allocations
+dynamically. Key objectives include:
+• Assessing RL Algorithm Effectiveness: Evaluate A2C,
+DDPG, and PPO in portfolio management, analyzing raw
+returns and risk-adjusted metrics like the Sharpe ratio.
+Adaptive Portfolio Management in V olatile Markets
+Using Deep Reinforcement Learning
+Abhishek Kumar Giri Pradeep Singh
+979-8-3315-4335-8/25/$31.00 ©2025 IEEE
+95
+2025 3rd International Conference on Device Intelligence, Computing and Communication Technologies (DICCT) | 979-8-3315-4335-8/25/$31.00 ©2025 IEEE | DOI: 10.1109/DICCT64131.2025.10986527
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:34:11 UTC from IEEE Xplore.  Restrictions apply. 
+• Adapting to Market Changes: Demonstrate how RL-based
+strategies outperform static models by learning from real-
+time financial data to handle market volatility and trend
+• Guiding Model Selection: Identify the best RL algorithms
+for different investor goals, balancing high returns and
+risk-adjusted stability through comparative analysis.
+• Advancing Portfolio Management: Highlight RL’s
+potential to enhance resilience, interpretability, and
+practical implementation, paving the way for future
+innovations in automated systems.
+The rest of this research paper is ordered as follows. Section
+II discusses works related to the field of portfolio management
+using DRL and identifies gaps in those research. Section III
+describes the proposed RL framework, including the archi-
+tecture and models used for portfolio optimization. Section
+IV presents the experiment results, providing the analysis of
+performance that evaluates the effectiveness of each model.
+Section V,provides the report, a summary of the results and
+recommends possible directions for further scope in this field
+in a nutshell.
+II. R ELATED WORKS
+DRL has emerged as a state-of-the-art tool in the field of
+portfolio management, offering unique approaches for improv-
+ing investment strategies in increasingly complicated financial
+markets. Researchers are utilizing DRL’s capacity to process
+vast volumes of financial data and modify policies in real time,
+attempting to develop models that balance rewards with risk
+under volatile market situations. These new efforts underscore
+DRL’s potential to alter portfolio management by allowing
+more adaptive, risk-sensitive investment strategies that respond
+dynamically to market turbulance.
+Liu et al. (2021) [11] used developed DRL trading strategies
+with adaptive mechanisms to portfolio optimization across
+highly volatile market settings. Their Method implemented
+real-time policy manipulation, enabling a Equilibrium between
+reward maximization and risk minimization, which showed
+adaptability to quick market changes. This study underscores
+the benefits of DRL in maintaining consistent portfolio returns
+while responding dynamically to market turbulance.
+In 2022, Tan et al. proposed a multi-agent DRL framework for
+portfolio management [12], focusing on collaborative decision-
+making across various assets/stocks. The agents interact within
+a environment that was simulated, exchanging insights to
+promote diversification and decrease danger. This approach
+showed potential in developing a stable and diversified port-
+folio by dispersing risk across assets, making the model robust
+against severe financial turbulance.
+Wang et al. (2023) [13] made yet another improvement in
+DRL-based portfolio management by using the PPO algorithm
+in multi-asset trading. By managing a wide set asset, PPO was
+able to enhance returns while decreasing drawdown risks in
+challenging market situations. Their work showed PPO’s ro-
+bustness in managing severely volatile trading circumstances,
+hence, boosting its applicability in real-world financial con-
+texts.
+In 2024, Zhang et al. advanced portfolio management through
+a dual-network DRL model integrating actor-critic methods
+with risk-aversion strategies [14]. This conservative yet ef-
+fective approach enabled the model to perform well in un-
+stable markets, prioritizing stable returns and safeguarding
+against large drawdowns. By combining risk-aware policies
+with actor-critic DRL methods, this model offered a more
+reliable approach to managing high-risk assets, showcasing
+the potential of DRL in robust portfolio management.
+While earlier techniques have concentrated on substantial
+training for individual asset behaviors, our study diverges by
+stressing a generalist strategy across varied portfolios, aiming
+for resilience and efficiency under time constraints These
+research studies demonstrate a trend toward strengthening
+the adaptability and resilience of DRL models for financial
+applications.
+III. METHODOLOGY
+This section discusses the methodology used in this paper.
+After selecting the Dow and Jones 30 dataset, the next and
+most important step is to prepare it. This step is called
+data preprocessing and includes data cleaning, normalization,
+and feature scaling. The dataset is analyzed and used to
+train deep reinforcement learning (DRL) agents, including
+A2C, DDPG, and PPO. The model implemented with these
+algorithms interacts with an environment consisting of stock
+prices, portfolio holdings, and technical indicators. The agent
+selects actions—buy, sell, or hold—based on the observed state
+and receives rewards based on profit or loss. The trained model
+is then evaluated through backtesting, where performance
+metrics such as annual return, Sharpe ratio, and cumulative
+return are calculated to optimize the trading strategy.This
+process is shown in Figure 1.
+A. Dataset Description
+The dataset comprises daily historical stock data for the
+Dow Jones Industrial Average (DJIA), encompassing impor-
+tant measures like ‘Open,’ ‘High,’ ‘Low,’ ‘Close,’ ‘Adj Close,’
+‘V olume,’ and ‘Ticker.’ It comprises corporations spanning
+industries such as technology (Apple, Microsoft), finance
+(JPMorgan, Goldman Sachs), and consumer goods (Procter
+& Gamble, Coca-Cola), along with healthcare, energy, and
+industrial enterprises.
+The dataset facilitates financial study in time-series analysis,
+stock forecasting, and portfolio management through price
+swings, adjusted closing values, and volume data. Its sector
+variety facilitates cross-industry studies, helping understand
+market sentiment and economic trends.
+B. Key Concepts of RL
+1) State: The representation of current market observation
+is known as the state and is shown as a vector. This vector
+referred as st which includes numerous market characteristics,
+96
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:34:11 UTC from IEEE Xplore.  Restrictions apply. 
+Fig. 1. Workflow of the proposed system
+such as asset prices and other indicators. Stock investors
+analyze all kinds of stock information before making decisions
+(buy, sell, or hold). To learn from the environment. Equation
+[4] is the mathematical represention of state in DRL:
+st = [p1, p2, . . . , pi] (1)
+where it denotes the price of the ith asset at time t.
+2) Action: The action is a decision made by the agent based
+on the current state. Action is the decision taken from the
+pool of action space,that is, buying, selling, or holding assets,
+and they can vary in complexity depending on the problem’s
+context [15]. The action space, denoted as A, consists of all
+possible actions, defined as:
+A = a1, a2, . . . , ax (2)
+where x is the number of distinct actions the agent can
+choose from.
+3) Reward: The reward function r serves as feedback to
+the model from the environment and acquits as input from
+the environment. It is a numerical signal indicating the con-
+sequences of an agent’s actions. In portfolio management,
+rewards are typically defined in terms of returns or profit-and-
+loss calculations [16]. Mathematically, the reward function can
+be calculated as:
+rt = R(st, at) (3)
+where R is a function that computes the return based on the
+state-action pair. This reward feedback helps the RL agent to
+reinforce behaviors that lead to favorable outcomes.
+4) Policy: The policy π is the agent’s strategy/planning
+for calculating the next action based on the current state.
+It is addressed as a mapping from states to a probability
+distribution over actions, representing the chances of taking
+each action given a state [15]. A well-designed policy ensures
+that the agent learns to make optimal decisions that maximize
+cumulative reward over time. This can be described as:
+π (a|s) = P (At = a|St = s) (4)
+where the probability of taking action a given state s is
+represented as π .
+5) Next State: The next state is the state agent arrives
+at when it takes the action on its current state then the
+environment transitions to a next state s′. This state transition
+process is governed by a state transition function f, which
+describes how actions influence the state of the environment
+[4]. Mathematically, this transition is expressed as:
+st+1 = f (st, at) (5)
+where f encapsulates the dynamics of the environment.
+6) Exploration and Exploitation: One of the fundamental
+challenges in RL is the exploration and exploitation trade-off.
+The balance between exploring new strategies and exploiting
+known profitable ones is essential for optimizing performance
+[17]. Mathematically, this balance is often represented by an
+exploration rate ϵt, which decays over time as the agent gains
+more knowledge of the environment. This is given by:
+ϵt = 1
+t (6)
+where t is the current time, indicating that exploration
+decreases as the agent becomes more efficient in its policy.
+97
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:34:11 UTC from IEEE Xplore.  Restrictions apply. 
+C. Models Used
+1) A2C: Among the most prominent RL algorithms is
+Advantage Actor-Critic (A2C), which is an improvement over
+traditional policy gradient methods. incorporates the advan-
+tages of policy gradient and value-based approaches by adding
+the advantage function A(s,a) [18]. This function measures the
+relative merit of an action compared to a baseline action in
+the current state and is defined as:
+As, a = Qs,a − Vs (7)
+where Q is the action-value function, representing the
+expected return for taking action in state s, and V is the
+state-value function, representing the expected return from
+state s. This separation of value components enhances learning
+efficiency by reducing variance in policy updates [19].
+2) PPO: Another widely used algorithm is Proximal Policy
+Optimization (PPO), which aims to optimize the policy func-
+tion while maintaining stability. This is achieved by limiting
+the updates to the policy, preventing radical changes that could
+destabilize learning [20]. The PPO objective function can be
+expressed as:
+Lclipθ = Et∼min(rt,θ) [At,clip(rt, 1 − ϵ, 1 + ϵ)] (8)
+where At is the estimated advantage and rt(θ) is the probabil-
+ity ratio between the new and previous policies. The clipping
+operation prevents the policy update from deviating too far
+from the current policy, ensuring smooth learning [5].
+3) DDPG: The Deep Deterministic Policy Gradient
+(DDPG) algorithm employs deep neural networks to approx-
+imate both the policy and value functions. It extends DPG to
+work in continuous action spaces, where deterministic policies
+are preferable. The update rule for the policy network in
+DDPG is given by:
+ϑ ← ϑ + α∇ϑJϑ (9)
+where α is the learning rate. DDPG’s architecture, com-
+bining actor and critic networks, enables effective learning in
+high-dimensional action spaces [21].
+IV. E XPERIMENTS AND RESULTS
+Training these DRL models involves cyclically adjustments
+in the Actor and Critic networks through simulated market
+interactionsa and appropriate hyperparameters are crucial for
+better performance of the models.
+A. Hyperparameter setting
+1) Learning Rate: The learning rate influences the speed
+and stability of model convergence. Lee et al. (2023) [22] gave
+its importance in financial markets, where precise tuning sup-
+ports the agent’s balance between exploration and exploitation
+in stock portfolio management.
+2) Discount Factor: This gamma( γ ) influences the agent’s
+attention toward either immediate rewards or sustained port-
+folio growth by balancing short-term against long-term ad-
+vantages. Dai et al. (2023) [20] discuss its role in reinforce-
+ment learning for portfolio optimization, particularly in high-
+frequency trading.
+3) Entropy: Entropy regularization encourages exploration
+to encourage exploration, thereby helping agents avoid oth-
+erwise premature convergence to suboptimal strategies. A
+2020 study demonstrates how entropy regularization improves
+decision making and robustness in portfolio management.
+TABLE I
+PPO M ODEL
+Hyperparameters Values
+Alpha 0.0003
+Batch Size 64
+Layer 1 size 512
+Layer 2 size 512
+Entropy 0.01
+TABLE II
+DDPG M ODEL
+Hyperparameters Values
+Alpha 0.000024
+Beta 0.00025
+Tau 0.001
+Batch size 64
+Layer 1 size 400
+Layer 2 size 300
+TABLE III
+A2C M ODEL
+Hyperparameters Values
+Alpha 0.003
+Gamma 0.99
+Layer 1 size 512
+Layer 2 size 512
+Entropy 0.0004
+B. Analysis
+In the experiment conducted, the DDPG model exhibited
+the highest annual return, suggesting its ability to maximize
+growth over time. Meanwhile, PPO achieved the highest
+Sharpe ratio, indicating it excels in producing stable, risk-
+adjusted returns. A2C, while effective, had slightly lower over-
+all metrics, suggesting its application may be best suited for
+more steady market environments or as a baseline comparator
+in reinforcement learning strategies. The performance of three
+reinforcement learning models:A2C, DDPG, and PPO was
+evaluated in comparison to a baseline Buy&Hold strategy over
+a simulation period of approximately 480 trading days. The
+cumulative return for each model was observered and plotted
+over time. Figures 1, 2, and 3 illustrates the performance of
+each model against the Buy&Hold benchmark.
+1) Advantage Actor-Critic (A2C) Performance: As shown
+in Fig. 2, the A2C model outperforms the Buy & Hold
+strategy by a considerable margin. The cumulative return
+curve for A2C shows a steady upward trend, with fewer
+significant drawdowns compared to the Buy & Hold approach.
+A2C’s ability to dynamically adjust portfolio weights based on
+varying market conditions allows it to mitigate losses during
+market dips, as evidenced by its recovery after approximately
+120 days. By the end of the simulation, A2C’s cumulative
+returns were notably higher than those of the Buy & Hold
+98
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:34:11 UTC from IEEE Xplore.  Restrictions apply. 
+Fig. 2. Performance comparision between Buy&Hold and A2C
+Fig. 3. Performance comparision between Buy&Hold and DDPG
+strategy, indicating its robustness in managing portfolio allo-
+cations in a volatile market
+2) Deep Deterministic Policy Gradient (DDPG) Perfor-
+mance: : Fig. 3 demonstrates the cumulative return of the
+DDPG model relative to the Buy & Hold baseline. DDPG
+consistently outperforms Buy & Hold, delivering the greatest
+cumulative return among the models examined. This model’s
+performance demonstrates its power in managing continuous
+action spaces, allowing for exact alterations in asset allo-
+cations. Unlike the A2C model, DDPG’s cumulative return
+curve exhibits higher volatility. However, the model’s long-
+term trend remains positive. This suggests that while DDPG
+may incur larger fluctuations in the short term, it achieves
+superior returns over the entire investment horizon.
+3) Proximal Policy Optimization (PPO) Performance: : In
+Fig. 4 , the cumulative return of the PPO model shows sub-
+stantial improvement over the Buy & Hold strategy. The PPO
+model maintains a stable growth trajectory and demonstrates
+Fig. 4. Performance comparision between Buy&Hold and PPO
+an effective balance between risk and return, achieving a
+favorable Sharpe ratio. PPO’s strategy of balancing exploration
+and exploitation allows it to react effectively to market shifts,
+which is reflected in its smoother cumulative return curve
+compared to DDPG. By the end of the trading period, PPO
+yields returns that surpass those of the Buy & Hold strategy,
+positioning it as a viable approach for risk-averse investors.
+TABLE IV
+PERFORMANCE OF PPO MODEL
+Evaluation Features PPO
+Annual Return Mean = 0.191 Std = 0.197
+Sharpe Ratio Mean = 0.998 Std = 0.358
+Max Drawdown Mean = -0.292 Std = 0.079
+TABLE V
+PERFORMANCE OF DDPG MODEL
+Evaluation Features DDPG
+Annual Return Mean = 0.231 Std = 0.119
+Sharpe Ratio Mean = 0.842 Std = 0.268
+Max Drawdown Mean = -0.262 Std = 0.056
+TABLE VI
+PERFORMANCE OF A2C MODEL
+Evaluation Features A2C
+Annual Return Mean = 0.220 Std = 0.197
+Sharpe Ratio Mean = 0.799 Std = 0.358
+Max Drawdown Mean = -0.230 Std = 0.079
+In table V, DDPG model demonstrated the highest annual
+return, suggesting its strong ability to maximize growth over
+time. Meanwhile, in table IV PPO achieved the highest Sharpe
+ratio, indicating it excels in producing stable, risk-adjusted
+returns. In table VI, A2C had slightly lower overall metrics,
+suggesting its application may be best suited for more stable
+market environments or as a baseline comparator in reinforce-
+99
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:34:11 UTC from IEEE Xplore.  Restrictions apply. 
+TABLE VII
+PERFORMANCE MATRIX OF ALL MODELS
+Models Annual Return Sharpe Ratio Max Drawdown
+A2C 22.0% 79.9% 23.0%
+PPO 19.1% 99.8% 29.2%
+DDPG 23.1% 84.2 26.2%
+ment learning strategies. Our results illustrate the DRL frame-
+work’s potential to overperform existing techniques through
+real-time, data-driven decision-making. Our trials demonstrate
+that DDPG achieves the maximum annual return at 23.1% but
+with larger drawdown, whereas PPO gives the highest Sharpe
+ratio of 0.998, excelling in risk-adjusted returns. Table VII
+dictates the performance of three alogrithms .
+V. C ONCLUSION
+In this study, we suggested a DRL framework for portfolio
+management, using the strengths of three unique algorithms:
+a2c, ddpg, and ppo. By implementing these models, our
+framework responds successfully to different market condi-
+tions, allowing dynamic portfolio modifications and supporting
+various investment aims. To be precise, DDPG displays capa-
+bility for maximum returns, matching well with high-growth,
+aggressive strategies, while ppo exhibits strong risk-adjusted
+returns, offering stability fit for conservative portfolios. Our
+results shows the DRL framework’s potential to surpass exist-
+ing techniques through real-time, data-driven decision-making.
+Our trials shows us that ddpg achieves the maximum yearly
+return at 23.1 % but with larger drawdown, whereas ppo gives
+the highest Sharpe ratio of 0.998, excelling in risk-adjusted re-
+turns a2c demonstrates long-term stability with balanced risk.
+However, challenges in interpretability and high computational
+requirements remain. Future research could address these by
+integrating advanced algorithms, such as Soft Actor-Critic
+(SAC) or Recurrent Reinforcement Learning (RRL), to refine
+model performance in complex trading scenarios. Additionally,
+multi-agent reinforcement learning (MARL) could enhance
+adaptability by simulating the dynamic interactions among
+market participants, while expanding data sources to include
+macroeconomic and sentiment indicators may further im-
+prove predictive accuracy. By applying explainable AI (XAI)
+methods, the interpretability of DRL-based models could
+be improved, fostering transparency and trust in automated
+investment decisions. Through continued refinement and test-
+ing in live environments, this framework could significantly
+advance automated portfolio management, with implications
+for efficiency, robustness, and strategy personalization.
+REFERENCES
+[1]F. Cesarone, M. L. Martino, and F. Tardella, “Mean-variance-var portfo-
+lios: Miqp formulation and performance analysis,”OR Spectrum, vol. 45,
+no. 3, pp. 1043–1069, 2023.
+[2]F. Black and R. Litterman, “Global portfolio optimization,” Financial
+analysts journal , vol. 48, no. 5, pp. 28–43, 1992.
+[3]R. S. Sutton and A. G. Barto, Reinforcement learning: An introduction .
+MIT press, 2018.
+[4]T. Lillicrap, “Continuous control with deep reinforcement learning,”
+arXiv preprint arXiv:1509.02971 , 2015.
+[5]J. Schulman, F. Wolski, P. Dhariwal, A. Radford, and O. Klimov, “Prox-
+imal policy optimization algorithms,” arXiv preprint arXiv:1707.06347 ,
+2017.
+[6]Z. Jiang, D. Xu, and J. Liang, “A deep reinforcement learning frame-
+work for the financial portfolio management problem,” arXiv preprint
+arXiv:1706.10059, 2017.
+[7]S. Shi, J. Li, G. Li, P. Pan, and K. Liu, “Xpm: An explainable
+deep reinforcement learning framework for portfolio management,” in
+Proceedings of the 30th ACM international conference on information
+& knowledge management , pp. 1661–1670, 2021.
+[8]F. Soleymani and E. Paquet, “Deep graph convolutional reinforcement
+learning for financial portfolio management–deeppocket,” Expert Sys-
+tems with Applications , vol. 182, p. 115127, 2021.
+[9]Y .-C. Lin, C.-T. Chen, C.-Y . Sang, and S.-H. Huang, “Multiagent-based
+deep reinforcement learning for risk-shifting portfolio management,”
+Applied Soft Computing , vol. 123, p. 108894, 2022.
+[10]C. Betancourt and W.-H. Chen, “Deep reinforcement learning for
+portfolio management of markets with a dynamic number of assets,”
+Expert Systems with Applications , vol. 164, p. 114002, 2021.
+[11]M. Kamruzzaman, J. Duan, D. Shi, and M. Benidris, “A deep reinforce-
+ment learning-based multi-agent framework to enhance power system
+resilience using shunt resources,” IEEE Transactions on Power Systems ,
+vol. 36, no. 6, pp. 5525–5536, 2021.
+[12]X.-Y . Liu, Z. Xia, J. Rui, J. Gao, H. Yang, M. Zhu, C. Wang,
+Z. Wang, and J. Guo, “Finrl-meta: Market environments and benchmarks
+for data-driven financial reinforcement learning,” Advances in Neural
+Information Processing Systems , vol. 35, pp. 1835–1849, 2022.
+[13]D. Xue, D. Wu, A. S. Yamashita, and Z. Li, “Proximal policy op-
+timization with reciprocal velocity obstacle based collision avoidance
+path planning for multi-unmanned surface vehicles,”Ocean Engineering,
+vol. 273, p. 114005, 2023.
+[14]R. Huang, H. He, X. Zhao, and M. Gao, “Longevity-aware energy
+management for fuel cell hybrid electric bus based on a novel proximal
+policy optimization deep reinforcement learning framework,” Journal of
+Power Sources, vol. 561, p. 232717, 2023.
+[15]V . Mnih, “Playing atari with deep reinforcement learning,” arXiv
+preprint arXiv:1312.5602, 2013.
+[16]T. G. Fischer, “Reinforcement learning in financial markets-a survey,”
+tech. rep., FAU discussion papers in economics, 2018.
+[17]L.-J. Lin, “Self-improving reactive agents based on reinforcement learn-
+ing, planning and teaching,” Machine learning , vol. 8, pp. 293–321,
+1992.
+[18]E. C. Garrido-Merch ´an, S. Mora-Figueroa-Cruz-Guzm ´an, and
+M. Coronado-Vaca, “Deep reinforcement learning for esg financial
+portfolio management,” arXiv preprint arXiv:2307.09631 , 2023.
+[19]G. Kharitonov, “Deep reinforcement learning in financial portfolio
+management,” in - , pp. 294–298, 2021.
+[20]Z. Liang, H. Chen, J. Zhu, K. Jiang, and Y . Li, “Adversarial
+deep reinforcement learning in portfolio management,” arXiv preprint
+arXiv:1808.09940, 2018.
+[21]H. Zhang, Z. Jiang, and J. Su, “A deep deterministic policy gradient-
+based strategy for stocks portfolio management,” in 2021 IEEE 6th
+International Conference on Big Data Analytics (ICBDA) , pp. 230–238,
+IEEE, 2021.
+[22]Y . Qiu, R. Liu, and R. S. Lee, “The design and implementation of a deep
+reinforcement learning and quantum finance theory-inspired portfolio
+investment management system,” Expert Systems with Applications ,
+vol. 238, p. 122243, 2024.
+100
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:34:11 UTC from IEEE Xplore.  Restrictions apply. 

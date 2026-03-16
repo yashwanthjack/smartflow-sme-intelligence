@@ -6,3 +6,15 @@ from app.config import settings
 engine = create_engine(settings.DATABASE_URL)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 Base = declarative_base()
+
+
+def get_db():
+    """
+    Dependency that provides a database session.
+    Used with FastAPI's Depends() for automatic session management.
+    """
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()

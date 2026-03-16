@@ -1,7 +1,7 @@
 # Entity model - SME or branch
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, DateTime
+from sqlalchemy import Column, String, DateTime, Boolean
 from app.db.database import Base
 
 
@@ -16,5 +16,11 @@ class Entity(Base):
     industry = Column(String)
     city = Column(String)
     state = Column(String)
+    
+    # Lender Platform / Public Profile
+    is_public_profile = Column(Boolean, default=False)
+    public_profile_slug = Column(String, unique=True, index=True, nullable=True)
+
     created_at = Column(DateTime, default=datetime.utcnow)
+
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -1,7 +1,7 @@
 # AuditLog model - decision audit trail
 import uuid
 from datetime import datetime
-from sqlalchemy import Column, String, Text, DateTime, ForeignKey
+from sqlalchemy import Column, String, Text, DateTime, ForeignKey, JSON
 from app.db.database import Base
 
 
@@ -9,7 +9,7 @@ class AuditLog(Base):
     __tablename__ = "audit_logs"
 
     id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
-    case_id = Column(String, ForeignKey("cases.id"), nullable=False)
+    entity_id = Column(String, ForeignKey("entities.id"), nullable=False)
 
     # ---- Actor Info ----
     agent_name = Column(String, nullable=False)
@@ -26,10 +26,9 @@ class AuditLog(Base):
 
     # ---- Target Entity ----
     entity_type = Column(String)
-    entity_id = Column(String)
 
     # ---- Decision Context ----
-    details = Column(Text)  
+    details = Column(JSON)  
     # JSON snapshot at time of decision
     reasoning = Column(Text)  
     # Human-readable explanation

@@ -1,0 +1,224 @@
+ 
+www.ijprems.com 
+editor@ijprems.com 
+INTERNATIONAL JOURNAL OF PROGRESSIVE 
+RESEARCH IN ENGINEERING MANAGEMENT 
+AND SCIENCE (IJPREMS) 
+(Int Peer Reviewed Journal) 
+Vol. 05, Issue 12, December 2025, pp : 672-675 
+e-ISSN : 
+2583-1062 
+Impact 
+Factor : 
+7.001 
+ 
+@International Journal Of Progressive Research In Engineering Management And Science           672      
+AI-POWERED MSME CREDIT SCORING AND RISK  
+ANALYTICS PLATFORM 
+Yash Suresh Lande1, Durgesh Yuvraj Hiwarkar2, Dishank Suresh Thakre3,  
+Harshal Dipakrao Dautpure4, Vivek Rajendra Meshram5, Nishchint Makode6 
+1,2,3,4,5Forth Year B.Tech, Department Of CSE, Nagpur Institute Of Technology, Nagpur,  
+Maharashtra, India. 
+6(Guide) Assit. Professor, B.Tech, Department Of CSE, Nagpur Institute Of Technology, Nagpur, 
+Maharashtra, India. 
+ABSTRACT 
+Micro, Small, and Medium Enterprises (MSMEs), focusing on how modern machine learning techniques enhance the 
+accuracy and efficiency of lending decisions. The study analyzes recent advancements in supervised learning, 
+ensemble modeling, deep learning, and explainable AI (XAI) used in financial risk assessment. A systematic 
+methodology was followed to examine models, datasets, evaluation metrics, and real -world deployment strategies. 
+Findings indicate that algorithms such as Random Forest, XGBoost, and neura l networks outperform traditional 
+statistical models in predicting MSME loan defaults, especially when enriched with alternative data sources like 
+transaction records and GST data. The review further highlights the growing need for transparency in AI -driven credit 
+decisions and evaluates the role of XAI in regulatory compliance and trust -building. The paper concludes that AI -
+driven credit scoring has significant potential to strengthen MSME financing, but future research must address 
+challenges related to data quality, model fairness, privacy, and real-time risk monitoring. 
+Keywords: Credit Scoring, Machine Learning, MSME Lending, Risk Analytics, Explainable AI, Prediction Models.  
+1. INTRODUCTION 
+ MSMEs contribute significantly to national economies by fostering innovation, generating employment, and 
+supporting regional development. Despite their importance, these enterprises often struggle to obtain institutional 
+credit due to the perceived high risk associated with limited financial records, lack of co llateral, and volatile cash 
+flows. Traditional credit scoring models such as logistic regression and rule -based systems fail to capture the dynamic 
+and non-linear nature of MSME financial behavior. 
+ AI and ML provide advanced predictive capabilities by leve raging both structured and unstructured data, enabling 
+lenders to evaluate MSME creditworthiness more accurately. Techniques such as Random Forest, Gradient Boosting, 
+XGBoost, and neural networks outperform conventional scoring models by analyzing deep pat terns in borrower 
+behavior, transaction history, and alternative digital footprints. 
+ This review paper synthesizes the findings of recent studies (2020 –2025) focusing on AI -powered credit risk 
+modeling for MSMEs. It evaluates the strengths and limitations of existing methodologies, highlights emerging 
+innovations such as Explainable AI (XAI), graph neural networks (GNNs), and survival analysis models, and 
+concludes by identifying future research directions. 
+2. LITERATURE REVIEW 
+2.1 Machine Learning Models in Credit Scoring 
+Several studies demonstrate the superiority of ML models over traditional statistical techniques. Random Forest, 
+XGBoost, and Support Vector Machines (SVM) consistently outperform logistic regression in predicting SME loan 
+defaults. ML models  utilize ensemble learning and non -linear decision boundaries to capture complex borrower 
+patterns. 
+2.2 Use of Alternative Data 
+Recent work highlights the importance of integrating bank statements, GST data, transaction logs, digital payments, 
+and social m edia data for credit scoring. MSMEs often lack formal credit histories, and alternative data significantly 
+improves prediction accuracy. 
+2.3 Explainable AI (XAI) in Lending 
+Financial institutions require transparency to comply with regulatory standards. XA I techniques such as SHAP and 
+LIME provide model interpretability, allowing lenders to justify decisions and gain borrower trust.  
+ 
+ 
+www.ijprems.com 
+editor@ijprems.com 
+INTERNATIONAL JOURNAL OF PROGRESSIVE 
+RESEARCH IN ENGINEERING MANAGEMENT 
+AND SCIENCE (IJPREMS) 
+(Int Peer Reviewed Journal) 
+Vol. 05, Issue 12, December 2025, pp : 672-675 
+e-ISSN : 
+2583-1062 
+Impact 
+Factor : 
+7.001 
+ 
+@International Journal Of Progressive Research In Engineering Management And Science           673      
+2.4 Graph-Based Models and Network Analytics 
+Graph attention networks (GAT) and relational graph neural networks (RGNNs) have been applied to model 
+relationships between enterprises, suppliers, and customers. These models help detect hidden risk patterns within 
+business networks. 
+2.5 Deep Learning Approaches 
+Deep learning models such as LSTM, CNN, and hybrid architectures have been u sed to analyze time -series financial 
+data and unstructured text. These models provide high predictive accuracy but often require large datasets and 
+significant computational resources. 
+3. METHODOLOGY 
+3.1 Research Design 
+The research follows a qualitative, analytical review framework. Studies related to machine learning, credit scoring, 
+MSME lending, explainable AI, and risk modeling were identified using databases such as IEEE Xplore, Springer, 
+ScienceDirect, MDPI, and Google Scholar. 
+3.2 Data Collection Strategy 
+A total of 50+ research articles, conference papers, and industry reports were collected based on relevance, recency, 
+and technical depth. Keywords used included: “MSME credit scoring,” “machine learning credit risk,” “XAI in 
+lending,” “SME risk prediction,” and “loan default modeling.” 
+3.3 Screening and Inclusion Criteria 
+Studies published between 2020 –2025, focusing on AI/ML credit scoring methods, were included. Articles not 
+involving MSME datasets, outdated statistical models, or lacking experime ntal results were excluded. 
+3.4 Analysis Method 
+Each selected study was evaluated based on the following factors: 
+1. Algorithms used (LR, RF, XGBoost, SVM, Neural Networks). 
+2. Dataset type (financial statements, GST, bank transactions, alternative data).  
+3. Techniques for preprocessing and feature engineering. 
+4. Evaluation metrics such as Accuracy, AUC-ROC, F1-score. 
+5. Integration of Explainable AI (SHAP/LIME). 
+6. Strengths, limitations, and outcomes. 
+3.5 Synthesis and Interpretation 
+Findings from multiple studies were synthesized to compare the performance, interpretability, and real -world 
+applicability of AI techniques. Patterns, gaps, and trends were identified to draw meaningful conclusions about the 
+state of MSME credit scoring research. 
+Most studies follow a structured pipeline: 
+1. Data Collection: financial statements, bank transactions, credit history, GST, invoice data.  
+2. Preprocessing: handling imbalance (SMOTE), feature engineering, normalization.  
+3. Model Development: ML classifiers, ensemble models, deep learning networks. 
+4. Explainability: SHAP, LIME, counterfactual explanations. 
+5. Model Evaluation: accuracy, AUC-ROC, precision-recall, F1-score. 
+4. MODELING AND ANALYSIS 
+This section presents the modeling approaches and analytical techniques identified across existing research on AI -
+powered MSME credit scoring and risk analytics. The analysis is aligned with the core concepts from the paper title, 
+including AI-powered mode ling, MSME credit scoring , and risk analytics . The goal is to understand how different 
+machine learning and deep learning models perform, how features are engineered, and how results are interpreted.  
+4.1 Modeling Techniques 
+A variety of AI/ML algorithms ha ve been employed in MSME credit scoring research. The most frequently used and 
+high-performing models include: 
+ Logistic Regression (LR): Serves as a baseline statistical model. 
+ Random Forest (RF): Popular due to its robustness and ability to handle heterogeneous MSME data. 
+ XGBoost and Gradient Boosting Models:  Deliver superior performance for imbalanced datasets and nonlinear 
+relationships. 
+ Support Vector Machines (SVM): Effective for high-dimensional credit data. 
+ 
+www.ijprems.com 
+editor@ijprems.com 
+INTERNATIONAL JOURNAL OF PROGRESSIVE 
+RESEARCH IN ENGINEERING MANAGEMENT 
+AND SCIENCE (IJPREMS) 
+(Int Peer Reviewed Journal) 
+Vol. 05, Issue 12, December 2025, pp : 672-675 
+e-ISSN : 
+2583-1062 
+Impact 
+Factor : 
+7.001 
+ 
+@International Journal Of Progressive Research In Engineering Management And Science           674      
+ Neural Networks (ANN, LSTM): Useful in capturing time-series trends and complex interactions. 
+ Graph Neural Networks (GNN): Emerging method for modeling enterprise–supplier–customer relationships. 
+4.2 Feature Engineering and Data Representation 
+Studies highlight the importance of transforming raw MS ME financial and transactional data into predictive features. 
+Common feature categories include: 
+ Financial ratios (liquidity, profitability, leverage) 
+ GST filings and compliance metrics 
+ Bank transaction behaviors (cash flow patterns, credit utilization) 
+ Repayment history and past loan behavior 
+ Digital footprint and alternative behavioural data 
+ Text-based features from business documents (when deep learning is used)  
+4.3 Analysis of Model Performance 
+Most reviewed studies use the following evaluation metrics: 
+ Accuracy for overall prediction performance 
+ AUC-ROC for distinguishing risky vs. safe borrowers 
+ Precision & Recall for imbalanced MSME datasets 
+ F1-score to balance false positives and false negatives 
+Across studies, XGBoost and Random Forest consistentl y outperform traditional models , particularly when 
+combined with advanced feature engineering and balanced training techniques like SMOTE.  
+4.4 Explainability and Interpretation 
+Given the regulatory need for transparent credit decisions, Explainable AI (XAI) techniques are widely used: 
+ SHAP values: Identify the contribution of each feature to the credit risk prediction. 
+ LIME: Generates local explanations for individual predictions. 
+ Feature importance ranking: Used for financial interpretability. 
+4.5 Analytical Insights 
+Key observations from model analysis include: 
+ Ensemble models provide the best balance of performance and interpretability.  
+ Alternative data significantly improves MSME risk prediction. 
+ Time-series models enhance early default detection. 
+ XAI helps make AI models auditable and regulator-friendly. 
+A comparison across 50+ reviewed papers shows: 
+ XGBoost and Random Forest are the most widely used and consistent top performers. 
+ Deep learning provides higher accuracy for large datasets but lacks interpretability. 
+ XAI-integrated ML models strike a balance between performance and transparency. 
+ Graph-based models are emerging but still under-explored for MSMEs. 
+RESEARCH GAP 
+ Limited availability of large, high-quality MSME datasets. 
+ Insufficient research on fairness, bias detection, and ethical AI in credit scoring. 
+ Need for more real-time credit scoring models using streaming financial data. 
+ Lack of standardized evaluation metrics across studies. 
+ Underutilization of graph neural netw 
+5. CONCLUSION 
+This review paper examines the growing role of Artificial Intelligence in MSME credit scoring and risk analytics, 
+highlighting how advanced machine learning models are transforming traditional lending systems. The analysis of 
+existing studies shows that AI -driven techniques significantly enhance the accuracy, speed, and reliability of credit 
+risk prediction by leveraging diverse datasets such as financial statements, GST records, transaction histories, and 
+alternative digital data. Ensemble models like Random Fo rest and XGBoost consistently demonstrate superior 
+ 
+www.ijprems.com 
+editor@ijprems.com 
+INTERNATIONAL JOURNAL OF PROGRESSIVE 
+RESEARCH IN ENGINEERING MANAGEMENT 
+AND SCIENCE (IJPREMS) 
+(Int Peer Reviewed Journal) 
+Vol. 05, Issue 12, December 2025, pp : 672-675 
+e-ISSN : 
+2583-1062 
+Impact 
+Factor : 
+7.001 
+ 
+@International Journal Of Progressive Research In Engineering Management And Science           675      
+performance, while deep learning models contribute strong capabilities for handling complex and time -dependent 
+financial behaviours. Moreover, Explainable AI (XAI) has emerged as a critical component for e nsuring transparency, 
+regulatory compliance, and fairness in automated credit decisions. 
+Despite these advancements, several challenges remain, including limited MSME -specific datasets, issues of data 
+imbalance, and the need for improved interpretability i n complex AI models. Future developments should focus on 
+building scalable, explainable, and ethically responsible AI systems that support inclusive and data -driven credit 
+access for MSMEs. Overall, the findings confirm that AI -powered credit scoring has t he potential to significantly 
+strengthen MSME financing and contribute to a more efficient digital lending ecosystem.  
+6. REFERENCES 
+[1] Gupta S., Sharma R., “AI-Driven Credit Scoring Models for MSMEs,” IEEE Access, vol. 10, pp. 12345-12356, 
+2022. 
+[2] Kumar A., Singh P., “Machine Learning -Based Risk Analytics for Financial Lending,” IEEE Transactions on 
+Computational Social Systems, vol. 9, no. 4, pp. 567-576, 2022. 
+[3] Jain N., Kaur M., “Digital Financial Inclusion Using AI Credit Scoring,” Proc. IEEE Inte rnational FinTech 
+Conference, pp. 210-215, 2021. 
+[4] Brownlee, J., “Imbalanced Classification Techniques,” MachineLearningMastery.com, 2023.  
+[5] OECD, “AI in Finance: Opportunities, Risks and Policy Considerations,” OECD Report, 2022.  
+ 

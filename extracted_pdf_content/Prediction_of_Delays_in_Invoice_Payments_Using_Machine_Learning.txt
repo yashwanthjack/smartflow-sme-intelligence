@@ -1,0 +1,586 @@
+IEEE ICTBIG-2023: 979-8-3503-4327-4/23/$31.00 ©2023 IEEE 
+Prediction of Delays in Invoice Payments using 
+Machine Learning 
+ 
+Aruna Kashinath 
+REVA Academy for Corporate 
+Excellence – RACE REVA 
+University  
+Bangalore, Karnataka 560064  
+arunak.ba06@reva.edu.in 
+Rashmi Agarwal 
+REVA Academy for Corporate 
+Excellence – RACE REVA 
+University  
+Bangalore, Karnataka 560064 
+rashmi.agarwal@race.reva.edu.in 
+Mithun D J 
+REVA Academy for Corporate 
+Excellence – RACE REVA 
+University  
+Bangalore, Karnataka 560064 
+mithun.dj@reva.edu.in
+ 
+ 
+Abstract— Accounts Receivable (AR), is the most valuable 
+asset of an organization. If it is not managed effectively, it can 
+cause the firm serious financial hardships. Identifying data 
+patterns is essential to understanding AR in order to forecast 
+whether it is guaranteed that an invoice can be paid in a tim ely 
+manner or else it’ll be delayed. It is extremely important for large 
+organizations that deal with thousands of vendors to fulfill their 
+service level agreements with them to avoid penalties. The data is 
+collected from a multinational organization consisting of the past 
+two year ’s transactions. The research has been conducted by 
+reviewing numerous papers related to invoice processing and 
+different methodologies used to estimate consumer payment in 
+AR. This paper is intended to showcase a supervised modeling 
+solution. Predicting the payment outcomes of newly created 
+invoices is essential for facilitating collection actions tailored to 
+each invoice or customer. Since this is a classification problem, an 
+ensemble method of Random Forest and Extreme Gradient 
+Boosting algorithms has been applied. By achieving the highest 
+accuracy, it is possible to determine if the payment for an invo ice 
+will be done on or before the due date and provide estima tes to 
+the customers regarding delays. This can assist the collection 
+team in prioritizing customers and facilitating their day- to-day 
+work. It is estimated that implementing the model to prioritize 
+the work of the Collection Management team, shall result in a 
+substantial amount of savings. Consequently, the team would 
+contact respective customers or account holders during the 
+period in which the invoices are open, thereby reducing the  
+organization's accounts receivable.  
+Keywords— Machine Learning, Invoice Processing, Invoice 
+Payment, Delayed Invoices, Accounts Receivable, Predictive 
+Modeling, Feature Engineering. 
+I.  INTRODUCTION  
+Every business aims at ways to contain costs and increase 
+the cash inflow. To achieve this, the organization ’s financial 
+system must work with great efficiency. Within this financial 
+system, AR classifies the costs to be paid by the customers or 
+account holders.  
+As part of the booking process, an invoice is generated 
+which must be paid according to the agreement with the 
+customer.  Prior to interference from the vendor or supplier 
+organization, a 45-day limit has been sanctioned for open 
+invoices. It is a common problem among many organizations 
+that customers fail to pay on time, and this results in 
+subsequent follow-ups to remind their customers to pay the 
+outstanding invoice amount [1].   As the number of invoices 
+generated per day increases, it becomes increasingly important 
+for the AR team to manually identify late payments or debts. 
+To manage this process and reduce the accounts receivables for 
+the organization, the collection management team reaches out 
+to its customers regarding their due payments to the 
+organization.  
+ Fig. 1 represents dealing with huge invoices from various 
+customers per month. The bubbles represent invoices due on a 
+particular day, and each bubble size denotes the number of 
+invoices due from different clients on that day. In this example, 
+the bubble ’s position indicates the cost of the invoice to be 
+received on a particular day. From Fig.1, it is difficult to 
+prioritize which customers should be contacted first.  
+ 
+Fig 1. Receivables over one month, distributed over payment data 
+The possibility exists of missing out on information such as 
+which customers are more likely to be late in making their 
+payments. It could be the easiest for the collection team to 
+contact those customers that have a larger amount of money to 
+be paid first since the organization wants to recover the 
+invoices with huge payments. It should be noted, however, that 
+a larger amount of money does not necessarily guarantee that 
+the customer is at higher risk. Consequently, predicting the 
+invoices most likely to be paid next can assist in prioritizing the 
+right customers and better allocating resources, resulting in a 
+stable financial situation. The focal point of the study in this 
+paper is improving the efficacy of AR. Historical data of 
+transactions have been utilized to identify patterns and create a 
+predictive model. Using this model, new invoices will be 
+categorized into payment buckets. Having this information can 
+2023 IEEE International Conference on ICT in Business Industry & Government (ICTBIG) | 979-8-3503-4327-4/23/$31.00 ©2023 IEEE | DOI: 10.1109/ICTBIG59752.2023.10455972
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:36:08 UTC from IEEE Xplore.  Restrictions apply. 
+IEEE ICTBIG-2023: 979-8-3503-4327-4/23/$31.00 ©2023 IEEE 
+allow the collections department to concentrate on offending 
+invoices along with bringing in proactive steps for speeding the 
+invoice payment collection process. 
+II. STATE OF ART 
+There are few works of literature in the domain of invoice 
+collection prediction. Some of the interesting papers are going 
+to be introduced now and then used during the analysis. A 
+review of the literature can be conducted in order to determine 
+what different tasks a company would have to carry out in 
+order to accurately predict delays. 
+A. Late payment prediction 
+In accordance with the discussion in [2], a study on late 
+payments could be conducted using machine learning. In this 
+study, invoices were collected from four different 
+organizations, including two Fortune 500 firms. Besides the 
+fundamental invoice details like the transaction date, payment 
+date due, and cost of the invoice, the dataset comprised the 
+payment delay invoice. For prediction, many decision tree 
+algorithms were used. Based on the training data, five classes 
+were identified: no delay, 1-30 days, 31-60, 61-90, and more 
+than 90 days. According to the author, there is a significant 
+improvement in accuracy when a single model is trained on a 
+combination of data from all companies instead of training a 
+model for each company separately. This suggests that invoices 
+sent by different organizations share similar behavioral 
+patterns. 
+Following [2] and [3], using similar invoice and payment 
+behavior features, five different models were compared with 
+the dataset when they were trained by the researcher [3] These 
+models are the Decision Tree, Random Forest algorithm, 
+AdaBoost, Logistic Regression, and Support Vector Machine. 
+These studies indicate that the Random Forest model had the 
+most probable accuracy of prediction for forecasting whether 
+the amount of invoice will be received prior to or by the due 
+date or extended, as well as the length of the postponement of 
+payment estimated as delays. There is evidence that customers 
+with a lesser volume of invoices are unlikely to have postponed 
+payments, which means that different models must be 
+developed for different types of customers. In the study, the 
+author demonstrated that prediction accuracy increases with a 
+rise in the count of invoices per customer. The author has also 
+tested the algorithms in two different scenarios: 
+(a) Case One (Binary outcome): Estimate the likelihood of an 
+invoice being paid on time (Yes/No). 
+(b) Case Two (Multiple outcomes): Determine if the invoice 
+falls into an individual out of four categories on delay in 
+payments: no delay, short delay (within 30 days), medium 
+delay (30-90 days), or long delay (more than 90 days). 
+ 
+In analyzing the indicators of late paid invoices and 
+customers not paying on time, the author [1] stated that there 
+was no evidential correlation between invoice cost and delays 
+in invoice payment. The researcher describes the use of 
+machine learning for a finer-grained estimation task, namely 
+spot factoring. In this study, the objective was to determine the 
+probability that the payment of the invoice will be completed in 
+a timely manner. In the paper, three different methods are 
+described for predicting payment delay risk: binary 
+classification for a fixed inexplicably late cut-off, regression of 
+the delayed days, and learning- to-rank, which optimizes the 
+risk-related ranking for a broad range of instances. Resulting of 
+the analysis was an evaluation that demonstrated that 
+regression models could yield bigger outcomes and spread the 
+risk more evenly in spot factoring than classification and 
+ranking models. 
+B. Customer Analysis 
+As opposed to predicting whether a specific invoice 
+payment will arrive by the scheduled due date or late, the 
+author [1] discusses the customer as a whole. Consequently, a 
+customer can have more than one outstanding invoice. The 
+main objective of the paper was to determine if the customer 
+was likely to pay on time or not. A new measure of pureness 
+was created in order to ascertain if a customer is paying an 
+invoice on or before the scheduled due date then the measure 
+of pureness is considered as “good” with a value of 1 assigned 
+to it. Similarly, a measure of pureness is assigned a value of 0 
+in case the customer delays payment of invoices. The whole 
+focus was to train their models of a prediction considering 
+variables associated with previous payment behavior which 
+was done on time and organization profile, rather than 
+variables associated with previous delayed payments. A model 
+was built to forecast the customers having a measure of 
+pureness between 0 and 1 and identify the customer who is 
+generally prompt in making payments with a high possibility, 
+with a hope to bring down the intervention actions. The 
+previous efforts were dedicated to increasing intervention 
+actions on invoices that are most probably delayed with 
+payments while paying attention to bringing down the 
+intervening actions on customers with the most likelihood of 
+making a payment on time. Furthermore, considering their 
+measure of pureness, it was possible to ascertain the 
+association between measured pureness and the forecasted 
+likelihood of paying on time. 
+C. Survival Analysis 
+Among the other methodologies, the study in the paper [5] 
+uses Survival analysis as an approach as the thesis mentions 
+that delayed invoice payment is not a classification problem, 
+because, in contrast to whether an event occurs or not, it is 
+more interesting in knowing the possibility of an event. Several 
+articles deal with survival analysis [6-8]. The author mentions 
+the algorithms for prediction fit considering huge data sets 
+from past customer data that extend over many years; standard 
+indicators, inconsistencies, and other time-related factors that 
+rise from changing economic indications remain hidden. They 
+have introduced a variation of the survival model that 
+comprises a relative time indicator for incorporating time-
+dependent factors and developed an algorithm as an optimal 
+outcome for fitting the model. Using an extremely huge, actual 
+data set, they were able to exhibit that integrating relative to 
+time can showcase reliable risk scoring, along with a crucial 
+observation into changing market effects that can improve 
+related decision-making. 
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:36:08 UTC from IEEE Xplore.  Restrictions apply. 
+IEEE ICTBIG-2023: 979-8-3503-4327-4/23/$31.00 ©2023 IEEE 
+ 
+Survival analysis was appropriate for the author [5] since 
+the invoice late payment problem is viewed as more of a 
+regression than a classification problem. Data on late invoices 
+that had been right- censored were subjected to survival 
+analysis and a novel ensemble method of Random Survival 
+Forests. They proposed two different models, for the ones who 
+have delayed payment for the first time and for repeated 
+debtors, and explored the result of various indicators in a 
+model. Random Forests proved to have advantages over other 
+model assumptions that were not underlying and needed to be 
+taken into consideration. It is concluded that the Random 
+Forests model which uses the historical payment behavior of 
+debtors, performs the best in ranking late invoices payment 
+times. 
+D. Prediction based on Account Payables (AP) 
+In contrast, the paper published by [9] focuses on AP. 
+Conversely to AR, AP is when a company purchases goods on 
+credit that need to be paid back. The paper discussed shows the 
+classes as imbalanced because the number of invoices that had 
+delayed payment is significantly lesser in percentage as 
+compared to invoices that were paid on time in training data. It 
+has been determined that more than 82% of the invoices being 
+penalized can be avoided by training the classifiers. 
+Considering the learnings from various papers, the study in 
+this paper is focused on classification models using supervised 
+learning with high accuracy in predicting the probability of 
+invoices likely to get delayed thereby providing the 
+organization’s business loss due to delayed payments. 
+III. PROBLEM DEFINITION 
+Collections Management is responsible for collecting 
+payments against open invoices within the organization 
+considered for the study. A review of some of the most critical 
+concepts in collection management is presented. The payment 
+term in a transaction contract is defined as the number of days 
+provided in order to pay the invoice transaction costs, which is 
+usually, 30, 45, 60, or even 90 days. The due date is the date on 
+which the invoice transaction costs must be paid. A late invoice 
+is a bill whose due date has passed and the customer has not 
+yet paid it; an outstanding invoice, on the other hand, is not 
+paid yet but is not late as its due date is in the future. Payment 
+can also be made in advance, prior to the due date agreed upon. 
+These advance payments place the customer at risk because 
+they may be able to pay for a service or good, but may not 
+receive them at the end of the transaction [10]. 
+Typically, invoice prediction is a classification problem that 
+uses supervised learning where based on a considered historical 
+dataset, the resultant set should include invoice features, and a 
+model is developed to classify invoices as on-time or late as 
+well as predict estimated delays based on a regression model.  
+IV. DATA SOURCE 
+The analysis in the following sections is based on a fortune 
+500 company's invoice data set that provides technology 
+services. The dataset contained 34,752 invoice data, which 
+processes around 1500 invoice transaction data in a month. For 
+confidentiality, customer-wise details were not available for 
+study and hence only invoice-level details were considered. 
+There were a majority of categorical fields within the dataset 
+which posed challenges in terms of variables with no numerical 
+relationship between levels. The cost of the transaction is a 
+very important numerical value in the dataset. The cost of an 
+invoice transaction was between <1 dollar to ~20M$. There are 
+indicative dates such as the Transaction Date, which is the date 
+of invoice creation, and the Due Date, calculated as per the 
+terms of invoice payment due.  
+The invoices have been categorized according to the 
+number of days that they have been delayed as showcased in 
+Fig. 2. It is evident from the graph that over 50% of the delays 
+are contributed from the buckets 16-30 and 31-45 days 
+together. There is a need to pay attention to these invoices and 
+try to find common features shared by these invoices.  
+ 
+Fig 2. Invoice Payment Delay in Days 
+Out of the dataset considered, 53% of invoices had a 
+positive outcome, meaning these invoices were closed without 
+delays and 47% had delays in payment. 
+The invoices paid before the due date are divided into 2 
+classes as shown in Fig. 3. For early payments, the invoices are 
+categorized as (-1) and for on-time payments, it is showcased 
+as (0).  
+Out of 53% of invoices that had no delays in payment, over 
+47% of payments were made earlier than expected than the due 
+date and 6% were paid on time. It is depicted in Fig. 3 
+displaying the distributions of the 2 incorporated target 
+parameters, based on the number of invoices. 
+ 
+Fig 3. Invoice Categorization – No Delays 
+Delays in account receivable management are classified 
+into 3 categories: late (1) if they occur between 1 and 30 days 
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:36:08 UTC from IEEE Xplore.  Restrictions apply. 
+IEEE ICTBIG-2023: 979-8-3503-4327-4/23/$31.00 ©2023 IEEE 
+after the due date; very late (2) if they occur between 31 and 90 
+days after the due date; and critically late (3) if they occur 
+beyond 90 days after the due date as showcased in Fig. 4. 
+Defining strategies for payment collection requires the vendor 
+to identify customers who probably pay prior to the contract's 
+due date. 
+Out of 47% of invoices that were delayed for payments, 
+29% had a delay of up to 1 month, 11% had lateness ranging 
+from 1 to 3 months, and 7% over a three-month delay was 
+experienced. Depicted in Fig. 4 are the distributions of the 
+three incorporated target parameters, over the invoices counts. 
+Invoices that are delayed for much longer are those that pose 
+the greatest challenge and are hence called “Critically late ” 
+invoices. 
+ 
+Fig 4 Invoice Categorization - Delays 
+The dataset contains information related to invoicing 
+payments and other categorical variables pertaining to e-
+invoicing, web invoicing, Purchase Order (PO) mandate, etc. 
+This dataset presents a significant challenge due to the absence 
+of customer-relevant information. Due to privacy constraints, 
+the scope of the project was reduced only to invoice details.  
+Feature Engineering was performed to derive significant 
+indicators for the purpose of developing a machine-learning 
+model. In total, only 14 features have been selected for the 
+feature engineering phase. The columns that did not represent 
+valuable information about the problem were removed. 
+Previous literature reviews on AR helped derive the most 
+valuable features from the data. There is also no value in 
+categorical columns with too many levels. This will 
+compromise the performance of the model since there will be 
+fewer examples available for each level of training, which will 
+reduce the ability of each level to have any influence on the 
+model's results. [10]. There was no missing data in any of the 
+columns and hence there was no need for further imputation to 
+the data. Payments for invoices that are delayed, advanced, or 
+made over a period of one year are unusual and require to be 
+handled as a separate proceeding. Label encoding and one-hot 
+encoding were done to the categorical variables to create new 
+attributes on basis of distinctive features in the attribute set. 
+V. PROPOSED METHOD 
+This paper aims to provide algorithmic solutions to the 
+team in predicting the delay in invoice payments based on the 
+features like reasons for which the invoice is created, Line of 
+Business (LOB), invoice amount, type of invoice whether e-
+invoicing or web, Purchase Order Mandate, and the Country in 
+which the customer is located. Based on proactive predictions, 
+delays in invoice payments can be reduced. 
+ 
+Fig 5 Algorithmic Solution for Delayed Invoice Payment 
+The solution for the delayed invoice payments has been 
+depicted in Fig. 5. Dataset is sourced to a supervised machine 
+learning model which predicts delayed invoice payments along 
+with the probability of delays. In this dataset, we have close to 
+50% defaulting on the payment. With historical examples of 
+invoices and their end result, the paper aims to answer the 
+following questions for a new invoice: 
+(i) Will the invoices be paid on time or late? 
+(ii) What could be the duration in which the invoice will 
+be paid? 
+An attempt is being made to develop a classification system 
+to identify the category a new invoice belongs to, based on a 
+training set of data that includes cases with known outcomes. 
+As a supervised learning problem, formulate the invoice 
+outcome prediction problem given the consequence of the 
+historical invoices, and a model is developed to predict when a 
+new invoice will be paid. 
+VI. MODELING 
+As outlined before, this is a binary classification problem to 
+forecast whether an invoice ’s payment was made on time or 
+delayed. Data discussed in the previous section has been fed 
+into multiple models to classify if invoice payment is done on 
+time or delayed. Based on the problem statement and the data 
+availability, a supervised modeling methodology to train the 
+classifiers are listed in Table I wherein there is one of each 
+classifier is evaluated and considered to better the outcomes as 
+each model will be better suited for the dataset considered for 
+the study of this paper. 
+Table 1 List of various classifiers evaluated in this paper 
+Classifier Approach 
+XGBoost (Extreme 
+Gradient Boosting) 
+Classification 
+An ensemble of decision trees using 
+gradient boosting classification. 
+XGBoost 
+Regression 
+An ensemble of decision trees using 
+gradient boosting regression. 
+Random Forest 
+Classification 
+Ensemble decision trees combining 
+ideas of a random selection of 
+features and bagging. 
+Random Forest 
+Regression 
+Ensemble decision trees combining 
+ideas of a random selection of 
+features and bagging. 
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:36:08 UTC from IEEE Xplore.  Restrictions apply. 
+IEEE ICTBIG-2023: 979-8-3503-4327-4/23/$31.00 ©2023 IEEE 
+Neural Network 
+Classifier 
+Trained a neural network with 3- 8 
+layers with binary cross-entropy 
+loss. 
+K Neighbors 
+Classifier 
+Uses proximity to make 
+classifications or predictions about 
+the grouping of an individual data 
+point. 
+Linear SVC 
+(Support Vector 
+Classifier) 
+Fit to the data returning a "best fit" 
+hyperplane that divides or 
+categorizes data. 
+Multi-layer 
+Perceptron (MLP) 
+Regressor 
+A feedforward neural network 
+training system. 
+VII. MODELING EVALUATION 
+The goal here is to determine metrics and assess different 
+machine-learning models for the prediction of invoice late 
+payments.  
+A. Training 
+The dataset considered for the study is split into two 
+categories that are 75% of training and 25% of the test set. The 
+training dataset consists of a “Paid” label with the status “Yes” 
+or “No” indicating if there is a delay in payment. To assess the 
+performance of classifiers, the testing set is used. Regression is 
+considered to predict the magnitude of delay. 
+B. Metrics 
+The metrics used for evaluation include Accuracy, 
+Precision, Recall, F1 Score, and Receiver Operating 
+Characteristic Curve (ROC) for classification, and Mean 
+Absolute Percentage Error (MAPE) for regression. It is 
+important that invoices paid late have a high level of precision 
+and recall in comparison to invoices that have been paid on 
+time. It would appear that most invoices labeled as "paid late" 
+are in fact "paid late" based on the high level of precision. With 
+a high recall, the model should be able to identify the majority 
+of invoices that will be "not paid by the due date". To compare 
+the predicted and correct instances in each class, a confusion 
+matrix was used. 
+C. Predicted Features 
+The predicted features in the study are the “Paid” label that 
+classifies if an invoice transaction cost was paid late or not and 
+the “Days Paid Late” label predicts the magnitude of delays. 
+VIII. RESULTS 
+This section discusses the result of the modeling methods 
+considered to estimate invoices that are paid late. Ultimately, 
+“Boosted Trees ” and “Random Forest ” resulted as the best 
+based on the Accuracy and F1 Score in Table II. The 
+classification models were considered to predict the payment as 
+on-time on late.  
+ 
+In order to predict the magnitude of delays in payments, 
+XGBoost Regressor, Random Forest Regressor, and MLP 
+Regressor were considered. Mean Absolute Percentage Error 
+(MAPE) and Coefficient of Determination were the metrics 
+considered for regression models. MLP Regressor performed 
+the best with a MAPE of 3%. 
+Table 2 MODEL EVALUATION 
+Models Accuracy F1 Score 
+Logistic Regression 68.62% 58.02% 
+XGBoost Classification 81.57% 69.50% 
+Random Forest Classification 80.60% 70.12% 
+Neural Network 36.73% 22.42% 
+K-Neighbors 45.02% 28.22% 
+Linear Support Vector Classifier 
+(SVC) 
+55.96% 32.64% 
+ 
+The Confusion metrics of the sample test are shown in Fig. 
+6. The model is able to classify True Positive with values as 
+1005 indicating that these invoices will be paid on time and has 
+been able to classify 675 invoices as False Negative indicating 
+delays, however, are paid on time.  
+On Time Delay
+On Time 1005 675
+Delay 530 1266
+Prediction
+Actual
+Confusion Matrix for test result
+ 
+Fig 6 Confusion Matrix for test results 
+The Precision Score is 0.69 for the model indicating that 
+when it classifies the invoices as late, it is correct 65% of the 
+time. The recall is 0.70 indicating that 70% of the time, the 
+model can classify the late payments as delayed. The F1 Score 
+being 0.67 states the equilibrium between precision and recall. 
+The Invoice Cost, Line of Business (LOB), and Credit Hold 
+were considered Key Drivers/Feature Importance causing the 
+delays. A credit Hold is a consequence for a client who makes 
+late payments on a consistent basis, defaults on their credits, or 
+is determined as a risk. 
+The accuracy of a classifier to distinguish two classes of 
+data is a measure of the ROC curve. Fig. 7 shows the ROC 
+curve for this study with an accuracy of 73%. 
+ 
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:36:08 UTC from IEEE Xplore.  Restrictions apply. 
+IEEE ICTBIG-2023: 979-8-3503-4327-4/23/$31.00 ©2023 IEEE 
+ 
+Fig 7 ROC Curve 
+IX. CONCLUSION 
+The paper focused on the classification of the binary model 
+and the regression for overdue dates in days. Both XGBoost 
+and Random Forest Classifier stood out as outspokenly good 
+performers. MLP Regressor estimated the magnitude of delays 
+with a very minimal error rate described as the best regressor 
+model. The model prediction should be used to focus on 
+defaulters instead of reaching out to a customer who pays on 
+time. The organization can save up to 40% of costs by not 
+contacting those customers who will pay on time.  
+X. FUTURE WORKS 
+The objective of this paper is solely to predict delays in 
+invoice payments based on Machine Learning models, which 
+analyze historical data and eliminate delays by proactive 
+follow-up with customers to ensure payment is received on 
+time.      
+A predictive model has been implemented to forecast if a 
+consumer will remunerate the pending invoices well within the 
+time, so that we can lessen interference measures on 
+consumers, thereby lessening cost along with bettering the 
+consumer relationships. The focal point was on individual 
+invoices instead of the customer level due to the non-
+availability of data. Model performance can be increasingly 
+improved by considering attributes like customer accounting 
+period, seasonality, geographical data, along with accounting 
+year.  
+A further collection of customer-wise, and region-wise data 
+and detailed analysis is required. The collection process for 
+invoices can be improved, thereby reducing delays. This will 
+also help in reducing the intervention actions between internal 
+teams and customers thereby achieving better customer 
+satisfaction. Incorporating further details about the customer 
+such as their income and gross profit can boost the learning 
+dataset. 
+REFERENCES 
+[1]  R. Stahlbock, G. M. Weiss, and M. Abou-Nasr, Proceedings of the 2018 
+International Conference on Data Science: ICDATA ’18. 2018. 
+[2] S. Zeng, P. Melville, C. A. Lang, I. Boier-Martin, and C. Murphy, “Using 
+Predictive Analysis to Improve Invoice- to-Cash Collection, ” in 
+Proceedings of the 14th ACM SIGKDD International Con ference on 
+Knowledge Discovery and Data Mining , 2008, pp. 1043 –1050. doi: 
+10.1145/1401890.1402014. 
+[3] H. Peiguang, “Predicting and Improving Invoice- to-Cash Collection 
+Through Machine Learning,” 2015. 
+[4] L. Coenen, W. Verbeke, and T. Guns, “Machine learning methods for the 
+short-term probability of default: A comparison of classification, 
+regression and ranking methods, ” Journal of the Operational Research 
+Society, vol. 73, no. 1, pp. 191 –206, 2022, doi: 
+10.1080/01605682.2020.1865847. 
+[5] J. Smirnov, “Modelling Late Invoice Payment Times Using Survival 
+Analysis and Random Forests Techniques,” 2016. 
+[6] M. Stepanova and L. Thomas, “Survival Analysis Methods for Personal 
+Loan Data, ” Oper Res , vol. 50, no. 2, pp. 277 –289, 2002, [Online]. 
+Available: http://www.jstor.org/stable/3088495 
+[7] J. J. Jaber, N. Ismail, U. Kebangsaan Malaysia, and M. S iti Norafidah 
+Mohd Ramli, “Journal of Internet Banking and Commerce CREDIT 
+RISK ASSESSMENT USING SURVIVAL ANALYSIS FOR 
+PROGRESSIVE RIGHT-CENSORED DATA: A CASE STUDY IN 
+JORDAN,” 2017. [Online]. Available: http://www.icommercecentral.com 
+[8] J.-K. Im, D. W. Apley, C. Qi, and X. Shan, “A time-dependent 
+proportional hazards survival model for credit risk analysis,” Journal of 
+the Operational Research Society, vol. 63, no. 3, pp. 306–321, Mar. 2012, 
+doi: 10.1057/jors.2011.34. 
+[9] T. Tater, S. Dechu, S. Mani, and C. Maurya, “Prediction of invoice 
+payment status in account payable business process,” in Lecture Notes in 
+Computer Science (including subseries Lecture Notes in Artificial 
+Intelligence and Lecture Notes in Bioinformatics) , 2018, vol. 11236 
+LNCS, pp. 165–180. doi: 10.1007/978-3-030-03596-9_11. 
+[10]  H. C. Pfohl and M. Gomm, “Supply Chain Finance: Optimizing Financial 
+Flows in Supply Chains,” 2009. 
+ 
+Authorized licensed use limited to: SRM Institute of Science and Technology- RamaPuram. Downloaded on February 13,2026 at 08:36:08 UTC from IEEE Xplore.  Restrictions apply. 
