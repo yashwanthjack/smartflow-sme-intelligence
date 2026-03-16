@@ -24,6 +24,13 @@ export default function AgentLogPage() {
             const res = await fetch(`/api/audit/${user.entity_id}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
+
+            if (res.status === 401) {
+                console.error("Unauthorized: AgentLogPage polling stopped due to invalid token")
+                // Stop polling could be done by setting a state, but for now just don't setLogs
+                return
+            }
+
             if (res.ok) {
                 setLogs(await res.json())
             }

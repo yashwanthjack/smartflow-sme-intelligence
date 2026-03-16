@@ -6,6 +6,8 @@ python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
 pandas
+xlrd
+openpyxl
 numpy
 prophet
 xgboost
@@ -16,3 +18,7 @@ langchain-openai
 langchain-google-genai
 duckduckgo-search
 shap
+huggingface_hub
+langchain-huggingface
+langchain-ollama
+psycopg2-binary

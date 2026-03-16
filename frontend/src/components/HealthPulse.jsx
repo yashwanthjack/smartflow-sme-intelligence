@@ -33,6 +33,18 @@ export default function HealthPulse({ entityId, token }) {
     const circumference = 2 * Math.PI * radius
     const offset = circumference - (score / 100) * circumference
 
+    if (data.interpretation === 'No Data') {
+        return (
+            <div className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '12px', minWidth: '340px' }}>
+                <HeartPulse size={24} color="var(--text-muted)" />
+                <div style={{ display: 'flex', flexDirection: 'column' }}>
+                    <span style={{ fontSize: '14px', fontWeight: '600', color: 'var(--text-primary)' }}>Financial Pulse: No Data</span>
+                    <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Requires financial data to calculate</span>
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="card" style={{ padding: '16px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '16px', minWidth: '340px' }}>
             <div style={{ flex: 1 }}>

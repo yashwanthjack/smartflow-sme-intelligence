@@ -1,9 +1,10 @@
-# LLM Configuration for SmartFlow Agents
-# Supports: vLLM (local), Gemini API, HuggingFace fallback
-
 import os
+import warnings
 from dotenv import load_dotenv
 from typing import Optional
+
+# Suppress Pydantic V1 compatibility warning for Python 3.14
+warnings.filterwarnings("ignore", message=".*Core Pydantic V1 functionality isn't compatible.*")
 
 load_dotenv()
 
@@ -11,40 +12,64 @@ load_dotenv()
 _MAX_FAILURES_BEFORE_FALLBACK = 0 # Disable Gemini fallback
 
 # vLLM Configuration
-VLLM_BASE_URL = os.getenv("VLLM_BASE_URL", "http://localhost:8000/v1")
-VLLM_MODEL = os.getenv("VLLM_MODEL", "LiquidAI/LFM2.5-1.2B-Thinking")
-
 # Ollama Configuration
 OLLAMA_BASE_URL = os.getenv("OLLAMA_BASE_URL", "http://localhost:11434")
-OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "llama3.2:3b") # Lightweight default
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen3:8b") # User selected Qwen 8B
 
+# Hugging Face Inference API Configuration
+HF_API_TOKEN = os.getenv("HUGGINGFACEHUB_API_TOKEN")
+HF_MODEL_NAME = os.getenv("HF_MODEL_NAME", "meta-llama/Llama-3.1-8B-Instruct")
 
 def get_llm(force_local: bool = True, prefer_vllm: bool = True):
     """
     Initialize LLM for agent use.
     
     Priority:
-    1. vLLM local server (OpenAI-compatible)
-    2. Ollama (local)
-    3. Local HuggingFace model (TinyLlama fallback)
+    1. Ollama (Local - Preferred)
+    2. Hugging Face Inference API (Cloud - Fallback)
+    3. vLLM local server
+    4. Local HuggingFace model (TinyLlama fallback)
     """
-    
-    # Priority 1: Try vLLM if configured
+
+    # Priority 1: Try Ollama (Local)
+    try:
+        return _get_ollama_llm()
+    except Exception as e:
+        # print(f"⚠️ Ollama not available: {e}")
+        pass
+
+    # Priority 2: Try Hugging Face Inference API
+    if HF_API_TOKEN:
+        try:
+            return _get_huggingface_llm()
+        except Exception as e:
+            print(f"⚠️ Hugging Face API failed: {e}")
+            
+    # Priority 3: Try vLLM if configured
     if prefer_vllm:
         try:
             return _get_vllm_llm()
         except Exception as e:
             pass # Try next
-    
-    # Priority 2: Try Ollama
-    try:
-        return _get_ollama_llm()
-    except Exception as e:
-        print(f"⚠️ Ollama not available: {e}")
-    
-    # Priority 3: Fallback to local HuggingFace model
+        
+    # Priority 4: Fallback to local HuggingFace model
     print("🔄 Using local HuggingFace LLM fallback (TinyLlama)...")
     return _get_local_llm()
+
+def _get_huggingface_llm():
+    """Get LLM from Hugging Face Inference API."""
+    from langchain_huggingface import HuggingFaceEndpoint, ChatHuggingFace
+    
+    print(f"✅ Connected to Hugging Face API: {HF_MODEL_NAME}")
+    llm = HuggingFaceEndpoint(
+        repo_id=HF_MODEL_NAME,
+        # task="conversational", # LangChain might not support this task string directly in Endpoint validation
+        max_new_tokens=512,
+        top_k=50,
+        temperature=0.7,
+        huggingfacehub_api_token=HF_API_TOKEN
+    )
+    return ChatHuggingFace(llm=llm)
 
 
 def _get_vllm_llm():
@@ -53,7 +78,8 @@ def _get_vllm_llm():
     import httpx
     
     try:
-        response = httpx.get(f"{VLLM_BASE_URL.replace('/v1', '')}/health", timeout=1.0)
+        # Check /v1/models to ensure it's actually an LLM server, not just our backend's /health
+        response = httpx.get(f"{VLLM_BASE_URL}/models", timeout=1.0)
         if response.status_code != 200:
             raise ConnectionError()
     except:
@@ -70,19 +96,26 @@ def _get_vllm_llm():
 
 def _get_ollama_llm():
     """Get LLM from local Ollama instance."""
-    from langchain_community.chat_models import ChatOllama
+    try:
+        from langchain_ollama import ChatOllama
+    except ImportError:
+        from langchain_community.chat_models import ChatOllama
     import httpx
     
     try:
         httpx.get(OLLAMA_BASE_URL, timeout=1.0)
     except:
+        # Don't raise error, let LangChain try or fail gracefully, or just warn.
+        # But keeping original logic is safer for now, just updated import.
+        # Actually original logic raised ConnectionError.
         raise ConnectionError(f"Ollama not found at {OLLAMA_BASE_URL}")
         
     print(f"✅ Connected to Ollama: {OLLAMA_MODEL}")
     return ChatOllama(
         base_url=OLLAMA_BASE_URL,
         model=OLLAMA_MODEL,
-        temperature=0.7
+        temperature=0.7,
+        num_ctx=4096
     )
 
 

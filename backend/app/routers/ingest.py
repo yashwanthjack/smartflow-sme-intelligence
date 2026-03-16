@@ -4,6 +4,8 @@ import shutil
 import os
 import tempfile
 from app.db.session import get_db
+from app.auth import get_current_active_user
+from app.models.user import User
 from app.services.ingestion_service import IngestionService
 
 # 1. Create the Router
@@ -31,8 +33,12 @@ def save_upload_file_tmp(upload_file: UploadFile) -> str:
 def ingest_bank_statement(
     entity_id: str = Form(...),
     file: UploadFile = File(...),
-    service: IngestionService = Depends(get_ingestion_service)
+    service: IngestionService = Depends(get_ingestion_service),
+    current_user: User = Depends(get_current_active_user)
 ):
+    if str(current_user.entity_id) != str(entity_id):
+        raise HTTPException(status_code=403, detail="Not authorized to access this entity.")
+        
     tmp_path = save_upload_file_tmp(file)
     try:
         count = service.ingest_bank_statement(tmp_path, entity_id)
@@ -48,8 +54,12 @@ def ingest_bank_statement(
 def ingest_ledger(
     entity_id: str = Form(...),
     file: UploadFile = File(...),
-    service: IngestionService = Depends(get_ingestion_service)
+    service: IngestionService = Depends(get_ingestion_service),
+    current_user: User = Depends(get_current_active_user)
 ):
+    if str(current_user.entity_id) != str(entity_id):
+        raise HTTPException(status_code=403, detail="Not authorized to access this entity.")
+        
     tmp_path = save_upload_file_tmp(file)
     try:
         count = service.ingest_ledger(tmp_path, entity_id)
@@ -64,8 +74,12 @@ def ingest_ledger(
 def ingest_gst(
     entity_id: str = Form(...),
     file: UploadFile = File(...),
-    service: IngestionService = Depends(get_ingestion_service)
+    service: IngestionService = Depends(get_ingestion_service),
+    current_user: User = Depends(get_current_active_user)
 ):
+    if str(current_user.entity_id) != str(entity_id):
+        raise HTTPException(status_code=403, detail="Not authorized to access this entity.")
+        
     tmp_path = save_upload_file_tmp(file)
     try:
         count = service.ingest_gst(tmp_path, entity_id)

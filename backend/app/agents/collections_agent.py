@@ -43,44 +43,49 @@ class CollectionsAgent(BaseAgent):
     def tools(self) -> list:
         return [get_overdue_invoices, get_customer_risk_score, draft_payment_reminder, update_invoice_status]
     
-    def run(self, task: str = "Analyze overdue invoices and create a prioritized collection plan") -> Dict[str, Any]:
+    async def run(self, task: str = "Analyze overdue invoices and create a prioritized collection plan") -> Dict[str, Any]:
         """Execute the collections agent using direct tool invocation."""
         from app.agents.tools import set_db_session
         from app.db.database import SessionLocal
         
         db = SessionLocal()
         set_db_session(db)
+        self.llm = get_llm()
         
         try:
             # Step 1: Get overdue invoices
+            # Tools are typically synchronous, but we can wrap them if needed. 
+            # For now, let's assume tool execution is fast enough or use run_in_executor if totally blocking.
+            # But the MAIN blocker is LLM.
             invoices_report = get_overdue_invoices.invoke(self.entity_id)
             
             # Step 2: Get risk scores for key customers
             risk_reports = []
-            for customer in ["ABC Corp", "XYZ Ltd", "Tech Solutions"]:
-                try:
-                    risk_reports.append(get_customer_risk_score.invoke(customer))
-                except Exception:
-                    pass
+            # In a real scenario, we'd extract names from invoices_report
+            # For now, we'll try a few common ones or rely on the LLM to ask for them in future iterations
+            # Simplified: Just feed the invoice report to the LLM
             
-            # Step 3: Compose final analysis
-            output = f"""📋 **Collections Agent Analysis**
+            # Step 3: Compose Prompt
+            prompt = f"""
+            {self.system_prompt}
+            
+            TASK: {task}
+            
+            DATA AVAILABLE:
+            {invoices_report}
+            
+            Please provide a detailed Collections Analysis and Action Plan.
+            """
+            
+            # Step 4: Invoke LLM
+            print(f"🤖 CollectionsAgent invoking LLM...")
+            try:
+                response = await self.llm.ainvoke(prompt)
+                output = response.content if hasattr(response, 'content') else str(response)
+            except Exception as e:
+                print(f"❌ LLM generation failed: {e}")
+                output = f"Error generating analysis: {e}\n\nFallback Data:\n{invoices_report}"
 
-{invoices_report}
-
----
-
-**Customer Risk Assessment:**
-{''.join(risk_reports) if risk_reports else 'No customer risk data available.'}
-
----
-
-**Recommended Actions:**
-1. 🔴 Prioritize collection from high-risk customers (Band C) with largest overdue amounts
-2. 🟡 Send firm reminders to medium-risk customers (Band B) 
-3. 🟢 Send gentle reminders to low-risk customers (Band A)
-4. 📊 Monitor DSO trend and escalate if it exceeds 45 days
-"""
             self.log_action("collection_plan_generated", {"result": output[:500]})
             return {"output": output, "agent": self.name}
         except Exception as e:
@@ -92,7 +97,7 @@ class CollectionsAgent(BaseAgent):
         return {"output": output, "agent": self.name}
 
 
-def run_collections_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
+async def run_collections_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
     """Convenience function to run the collections agent."""
     agent = CollectionsAgent(entity_id)
-    return agent.run(task or "Analyze overdue invoices and create a prioritized collection plan")
+    return await agent.run(task or "Analyze overdue invoices and create a prioritized collection plan")

@@ -73,7 +73,7 @@ class ScoringService:
         )
         
         if not ledger_entries:
-            return self._get_mock_features()
+            return None
         
         # Calculate features
         amounts = [e.amount for e in ledger_entries]
@@ -202,6 +202,25 @@ class ScoringService:
             dict with score, risk_band, factors, and recommendations
         """
         features = self.compute_features(entity_id)
+        
+        if features is None:
+            return {
+                'entity_id': entity_id,
+                'score': None,
+                'risk_band': 'N/A',
+                'risk_label': 'No Data',
+                'method': 'none',
+                'factors': [],
+                'features': {},
+                'shap_values': [],
+                'recommendations': ["Upload financial data (Bank Statements or Tally Ledger) to generate your credit score."],
+                'loan_eligibility': {
+                    'working_capital_limit': "N/A",
+                    'indicative_rate': "N/A",
+                    'invoice_discounting': "N/A",
+                    'term_loan': "N/A"
+                }
+            }
         
         if XGBOOST_AVAILABLE and self.model is not None:
             return self._xgboost_score(features)
@@ -465,6 +484,18 @@ class ScoringService:
         Formula: H = 0.3*R + 0.2*C + 0.25*D + 0.25*E
         """
         features = self.compute_features(entity_id)
+        if features is None:
+             return {
+                'health_pulse': 0,
+                'components': {
+                    'runway_score': 0,
+                    'credit_score_norm': 0,
+                    'dso_score': 0,
+                    'efficiency_score': 0
+                },
+                'interpretation': 'No Data'
+            }
+            
         credit_score_data = self.calculate_score(entity_id)
         score = credit_score_data['score']
         

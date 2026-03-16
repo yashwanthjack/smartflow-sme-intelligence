@@ -4,7 +4,7 @@ import { Building2, Upload, CheckCircle, ArrowRight } from 'lucide-react'
 
 const API_BASE = '/api'
 
-export default function OnboardingWizard({ onComplete }) {
+export default function OnboardingWizard({ entityId: passedEntityId, onComplete }) {
     const { token, user } = useAuth()
     const [step, setStep] = useState(1)
     const [loading, setLoading] = useState(false)
@@ -12,6 +12,7 @@ export default function OnboardingWizard({ onComplete }) {
     // Step 1: Organization Details
     const [orgName, setOrgName] = useState('')
     const [industry, setIndustry] = useState('')
+    const [entityId, setEntityId] = useState(passedEntityId || null)
 
     // Step 2: File Upload
     const [file, setFile] = useState(null)
@@ -30,6 +31,8 @@ export default function OnboardingWizard({ onComplete }) {
                 body: JSON.stringify({ name: orgName, industry })
             })
             if (res.ok) {
+                const data = await res.json()
+                setEntityId(data.id)
                 setStep(2)
             } else {
                 alert("Failed to save organization details")
@@ -51,8 +54,12 @@ export default function OnboardingWizard({ onComplete }) {
         try {
             const formData = new FormData()
             formData.append('file', file)
-            // Default to bank statement for onboarding
-            const res = await fetch(`${API_BASE}/ingest/bank-statement?bank_name=hdfc`, {
+            // Fix: Backend expects entity_id in form data
+            if (entityId) formData.append('entity_id', entityId)
+            else if (user?.entity_id) formData.append('entity_id', user.entity_id)
+
+            // Fix: Correct endpoint is /ingest/bank, not /ingest/bank-statement
+            const res = await fetch(`${API_BASE}/ingest/bank`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` },
                 body: formData

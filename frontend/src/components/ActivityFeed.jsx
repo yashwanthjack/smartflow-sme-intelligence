@@ -13,6 +13,11 @@ export default function ActivityFeed({ entityId }) {
     const fetchLogs = async () => {
         try {
             const token = localStorage.getItem('token')
+            if (!token) {
+                console.warn("No token found, skipping fetch")
+                return
+            }
+
             // Use relative path to leverage Vite proxy and ensure consistency
             const res = await fetch(`/api/audit/${entityId}?limit=10`, {
                 headers: {
@@ -20,6 +25,15 @@ export default function ActivityFeed({ entityId }) {
                     'Content-Type': 'application/json'
                 }
             })
+
+            if (res.status === 401) {
+                console.error("Unauthorized: Token expired or invalid")
+                // Optional: localStorage.removeItem('token')
+                // window.location.href = '/login' 
+                // But better to just let the user know or handle globally
+                return
+            }
+
             if (res.ok) {
                 const data = await res.json()
                 setLogs(data)

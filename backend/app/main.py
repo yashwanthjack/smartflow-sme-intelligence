@@ -27,9 +27,10 @@ async def lifespan(app: FastAPI):
     print("✅ Database tables created/verified")
     
     # Start Agent Workforce background simulation
-    # from app.services.agent_workforce import simulate_workforce
-    # import asyncio
-    # asyncio.create_task(simulate_workforce())
+    # Start Agent Workforce background simulation
+    from app.services.agent_workforce import simulate_workforce
+    import asyncio
+    asyncio.create_task(simulate_workforce())
     
     yield
     # Shutdown: cleanup if needed

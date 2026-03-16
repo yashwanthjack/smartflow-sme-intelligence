@@ -441,7 +441,7 @@ class SupervisorAgent:
             "credit": run_credit_advisory_agent
         }
     
-    def run(self, entity_id: str, query: str) -> Dict[str, Any]:
+    async def run(self, entity_id: str, query: str) -> Dict[str, Any]:
         """Process a user query intelligently."""
         
         intent = classify_intent(query)
@@ -457,12 +457,12 @@ class SupervisorAgent:
         
         # --- Multi-agent collaboration ---
         if intent["type"] == "multi":
-            return self._run_multi_agent(entity_id, query, intent)
+            return await self._run_multi_agent(entity_id, query, intent)
         
         # --- Single agent ---
-        return self._run_single_agent(entity_id, query, intent["agent"])
+        return await self._run_single_agent(entity_id, query, intent["agent"])
     
-    def _run_multi_agent(self, entity_id: str, query: str, intent: Dict) -> Dict[str, Any]:
+    async def _run_multi_agent(self, entity_id: str, query: str, intent: Dict) -> Dict[str, Any]:
         """Orchestrate multiple agents and synthesize their outputs."""
         agents_needed = intent["agents"]
         query_type = intent["subtype"]
@@ -474,7 +474,7 @@ class SupervisorAgent:
             runner = self.agent_runners.get(agent_name)
             if runner:
                 try:
-                    result = runner(entity_id, query)
+                    result = await runner(entity_id, query)
                     output = result.get("output", str(result)) if isinstance(result, dict) else str(result)
                     results[agent_name] = {"output": output, "success": True}
                     agents_used.append(agent_name)
@@ -498,7 +498,7 @@ class SupervisorAgent:
             "output": combined_output
         }
     
-    def _run_single_agent(self, entity_id: str, query: str, agent_name: str) -> Dict[str, Any]:
+    async def _run_single_agent(self, entity_id: str, query: str, agent_name: str) -> Dict[str, Any]:
         """Route to a single agent."""
         runner = self.agent_runners.get(agent_name)
         
@@ -511,7 +511,7 @@ class SupervisorAgent:
             }
         
         try:
-            result = runner(entity_id, query)
+            result = await runner(entity_id, query)
             output = result.get("output", str(result)) if isinstance(result, dict) else str(result)
             
             return {
@@ -529,17 +529,17 @@ class SupervisorAgent:
                 "fallback_output": f"⚠️ {agent_name} encountered an error. Please try again."
             }
     
-    def run_full_analysis(self, entity_id: str) -> Dict[str, Any]:
+    async def run_full_analysis(self, entity_id: str) -> Dict[str, Any]:
         """Run all agents for comprehensive analysis."""
         intent = {"agents": ["collections", "payments", "gst", "credit"], "subtype": "full_health"}
-        return self._run_multi_agent(entity_id, "full analysis", intent)
+        return await self._run_multi_agent(entity_id, "full analysis", intent)
 
 
 # Convenience functions
-def run_supervisor(entity_id: str, query: str) -> Dict[str, Any]:
+async def run_supervisor(entity_id: str, query: str) -> Dict[str, Any]:
     supervisor = SupervisorAgent()
-    return supervisor.run(entity_id, query)
+    return await supervisor.run(entity_id, query)
 
-def run_full_analysis(entity_id: str) -> Dict[str, Any]:
+async def run_full_analysis(entity_id: str) -> Dict[str, Any]:
     supervisor = SupervisorAgent()
-    return supervisor.run_full_analysis(entity_id)
+    return await supervisor.run_full_analysis(entity_id)

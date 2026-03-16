@@ -89,7 +89,7 @@ async def get_lender_report(share_token: str, db: Session = Depends(get_db)):
         "industry": entity.industry,
         "report_generated_at": datetime.now(),
         "financials": kpis["financials"],
-        "credit_score": kpis["credit"],
+        "credit": kpis["credit"],
         "risk_assessment": {
             "summary": "This entity shows strong growth but moderate burn.",
             "flags": [] 

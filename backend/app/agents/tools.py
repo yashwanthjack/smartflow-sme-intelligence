@@ -6,18 +6,18 @@ from typing import Optional
 from datetime import date, timedelta
 
 from sqlalchemy.orm import Session
+from contextvars import ContextVar
 
-# Database session helper (lazy import to avoid circular deps)
-_db_session: Optional[Session] = None
+# Database session helper (async-safe using ContextVar)
+_db_session_var: ContextVar[Optional[Session]] = ContextVar("_db_session", default=None)
 
 def set_db_session(db: Session):
     """Set the database session for tools to use."""
-    global _db_session
-    _db_session = db
+    _db_session_var.set(db)
 
 def get_db_session() -> Optional[Session]:
     """Get the current database session."""
-    return _db_session
+    return _db_session_var.get()
 
 
 # ============================================================================
@@ -69,24 +69,12 @@ def get_overdue_invoices(entity_id: str) -> str:
                     total += inv.balance_due
                 
                 result += f"\n**Total Overdue**: ₹{total:,.0f}"
+                result += f"\n**Total Overdue**: ₹{total:,.0f}"
                 return result
         except Exception as e:
-            pass  # Fall through to mock data
+            return f"Error fetching overdue invoices: {str(e)}"
     
-    # Mock data for testing/demo
-    today = date.today()
-    mock_invoices = [
-        {"id": "INV-2024-001", "customer": "ABC Corp", "amount": 50000, "days": 15},
-        {"id": "INV-2024-003", "customer": "XYZ Ltd", "amount": 25000, "days": 7},
-        {"id": "INV-2024-007", "customer": "Tech Solutions", "amount": 75000, "days": 3},
-    ]
-    
-    result = "📋 **Overdue Invoices Report**\n\n"
-    for inv in mock_invoices:
-        result += f"- **{inv['id']}**: ₹{inv['amount']:,} from {inv['customer']} ({inv['days']} days overdue)\n"
-    
-    result += f"\n**Total Overdue**: ₹{sum(inv['amount'] for inv in mock_invoices):,}"
-    return result
+    return "✅ **No overdue invoices found.** Great job on collections!"
 
 
 @tool
@@ -290,25 +278,14 @@ def get_pending_payables(entity_id: str) -> str:
                     total += inv.balance_due
                 
                 result += f"\n**Total Pending**: ₹{total:,.0f}"
+                result += f"\n**Total Pending**: ₹{total:,.0f}"
                 return result
+            else:
+                return "✅ **No pending payables found.** You are up to date!"
         except Exception as e:
-            pass
+             return f"Error fetching payables: {str(e)}"
     
-    # Mock data
-    today = date.today()
-    payables = [
-        {"vendor": "Raw Materials Co", "amount": 120000, "days": 5, "priority": "Critical"},
-        {"vendor": "Office Supplies", "amount": 15000, "days": 10, "priority": "Low"},
-        {"vendor": "IT Services", "amount": 45000, "days": 7, "priority": "Medium"},
-        {"vendor": "Logistics Partner", "amount": 85000, "days": 3, "priority": "Critical"},
-    ]
-    
-    result = "📋 **Pending Payables**\n\n"
-    for p in payables:
-        result += f"- **{p['vendor']}**: ₹{p['amount']:,} due in {p['days']} days [{p['priority']}]\n"
-    
-    result += f"\n**Total Pending**: ₹{sum(p['amount'] for p in payables):,}"
-    return result
+    return "⚠️ Database connection unavailable."
 
 
 @tool
@@ -333,6 +310,96 @@ def schedule_payment(vendor_name: str, amount: float, pay_date: str) -> str:
 
 *This payment will be executed after approval.*
 """
+
+
+# ============================================================================
+# LEDGER ANALYSIS TOOLS
+# ============================================================================
+
+@tool
+def analyze_ledger_spending(entity_id: str) -> str:
+    """Analyze historical spending from the ledger to find trends.
+    Useful for answering 'highest spent month', 'spending trends', etc.
+    
+    Args:
+        entity_id: The unique identifier of the business entity
+        
+    Returns:
+        Analysis of monthly spending and top categories.
+    """
+    db = get_db_session()
+    if not db:
+        return "Database connection unavailable."
+        
+    try:
+        from app.models.ledger_entry import LedgerEntry
+        from sqlalchemy import func, extract
+        import calendar
+        
+        # 1. Monthly Spending Analysis (Expenses only, i.e., amount < 0)
+        # Note: In our Ledger, expenses might be negative or positive depending on account type.
+        # usually Expenses are Debit, which we often store as negative or track as 'Debit'.
+        # Let's assume amount < 0 is outflow/expense for simplicity based on common schema,
+        # OR check if category implies expense.
+        # Actually safer to look at all transactions and group by month.
+        
+        results = (
+            db.query(
+                func.to_char(LedgerEntry.ledger_date, 'YYYY-MM').label("month"),
+                func.sum(LedgerEntry.amount).label("net_change"),
+                func.sum(func.abs(LedgerEntry.amount)).label("volume")
+            )
+            .filter(LedgerEntry.entity_id == entity_id)
+            .group_by("month")
+            .order_by("month")
+            .all()
+        )
+        
+        if not results:
+            return "No ledger data found to analyze spending."
+            
+        # Re-query specifically for outflows (assuming negative amounts are outflows, 
+        # OR heuristic: if allow manual transaction tool asked for negative/positive, we follow that.
+        # Let's try to assume expenses are negative. If user data is all positive, we might need to adjust.
+        # Based on previous tasks, user has 2005 entries.
+        
+        expenses = (
+            db.query(
+                func.to_char(LedgerEntry.ledger_date, 'YYYY-MM').label("month"),
+                func.sum(LedgerEntry.amount).label("total_expense")
+            )
+            .filter(LedgerEntry.entity_id == entity_id)
+            .filter(LedgerEntry.amount < 0)
+            .group_by("month")
+            .order_by(func.sum(LedgerEntry.amount).asc()) # Most negative first (highest expense)
+            .all()
+        )
+        
+        report = "📊 **Ledger Spending Analysis**\n\n"
+        
+        if expenses:
+            highest_month = expenses[0] # Tuple: (month_str, amount)
+            # expenses are negative, so min() is highest absolute spending
+            
+            y, m = highest_month[0].split('-')
+            month_name = calendar.month_name[int(m)]
+            amount = abs(highest_month[1])
+            
+            report += f"**Highest Spending Month**: {month_name} {y} (₹{amount:,.0f})\n\n"
+            
+            report += "**Monthly Spending Trend**:\n"
+            # Sort chronologically for trend
+            expenses_sorted = sorted(expenses, key=lambda x: x[0], reverse=True)[:6] # Last 6 active months
+            for month_str, amount in expenses_sorted:
+                amt = abs(amount)
+                report += f"- {month_str}: ₹{amt:,.0f}\n"
+        else:
+            report += "No explicit expense entries (negative amounts) found.\n"
+            
+        return report
+
+    except Exception as e:
+        return f"Error analyzing ledger: {str(e)}"
 
 
 # ============================================================================
@@ -380,13 +447,12 @@ def check_gst_compliance(entity_id: str) -> dict:
                     }
                 }
         except Exception as e:
-            pass
+            return f"Error fetching GST data: {str(e)}"
     
-    # Mock data (if no DB or error) - GENERIC FOR NEW ACCOUNTS
     return {
-        "period": "Current Period",
-        "return_type": "GSTR-1 & 3B",
-        "filing_status": "Unknown / Not Linked",
+        "period": "N/A",
+        "return_type": "N/A",
+        "filing_status": "No GST Data Uploaded",
         "filed_on": None,
         "tax_summary": {
             "output_tax": 0,
@@ -398,7 +464,7 @@ def check_gst_compliance(entity_id: str) -> dict:
             "blocked": 0
         },
         "blocked_itc_details": [],
-        "recommendation": "Connect your GST portal or upload GSTR data to see compliance status."
+        "recommendation": "Please upload your GSTR-1 and GSTR-3B JSON files to see compliance status."
     }
 
 

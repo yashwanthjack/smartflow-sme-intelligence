@@ -7,11 +7,58 @@ from sqlalchemy.orm import Session
 from app.db.database import SessionLocal
 from app.models.audit_log import AuditLog
 from app.models.entity import Entity
+from app.agents.llm import get_llm
 
 
 class AgentWorkforceService:
     def __init__(self, db: Session):
         self.db = db
+        try:
+            self.llm = get_llm()
+        except Exception:
+            self.llm = None
+
+    async def _generate_text(self, prompt: str, fallback: str) -> str:
+        """Helper to generate text with LLM or return fallback."""
+        if not self.llm:
+            return fallback
+        try:
+            # ainvoke is asynchronous and won't block the event loop
+            response = await self.llm.ainvoke(prompt)
+            return response.content if hasattr(response, 'content') else str(response)
+        except Exception as e:
+            print(f"LLM gen failed: {e}")
+            return fallback
+
+    def _get_random_customer(self, entity_id):
+        """Get a random customer from ledger (inflow transactions)."""
+        from app.models.ledger_entry import LedgerEntry
+        try:
+            # simple heuristic: positive amount = customer paying us
+            customers = self.db.query(LedgerEntry.description)\
+                .filter(LedgerEntry.entity_id == entity_id, LedgerEntry.amount > 0)\
+                .distinct().limit(50).all()
+            
+            if customers:
+                return random.choice(customers)[0]
+        except Exception:
+            pass
+        return None
+
+    def _get_random_vendor(self, entity_id):
+        """Get a random vendor from ledger (outflow transactions)."""
+        from app.models.ledger_entry import LedgerEntry
+        try:
+            # simple heuristic: negative amount = us paying vendor
+            vendors = self.db.query(LedgerEntry.description)\
+                .filter(LedgerEntry.entity_id == entity_id, LedgerEntry.amount < 0)\
+                .distinct().limit(50).all()
+            
+            if vendors:
+                return random.choice(vendors)[0]
+        except Exception:
+            pass
+        return None
 
     async def run_background_cycle(self, entity_id: str):
         """Simulates multi-agent orchestration for an entity."""
@@ -34,27 +81,39 @@ class AgentWorkforceService:
 
     async def _scenario_collections_credit(self, entity_id: str):
         """CollectionsBot detects overdue → asks RiskSentinel for risk score → decides action."""
+        customer = self._get_random_customer(entity_id)
+        if not customer: return  # Skip simulation if no real data
+        
         trace_id = f"trace-{uuid.uuid4().hex[:8]}"
         
         overdue_amount = random.randint(50000, 300000)
-        customer = random.choice(["ABC Textiles", "Krishna Retail", "Gupta Sarees", "Metro Textiles", "Royal Garments"])
         days_overdue = random.randint(5, 60)
         risk_score = random.randint(350, 800)
         risk_band = "A" if risk_score > 700 else ("B" if risk_score > 550 else "C")
         
         # Step 1: CollectionsBot finds overdue
+        prompt_detect = f"""You are a Collections Agent. A customer '{customer}' has an overdue invoice of ₹{overdue_amount:,} ({days_overdue} days late).
+        Write a concise 1-sentence audit log summary about detecting this. Tone: Professional but alert."""
+        
+        summary_detect = await self._generate_text(prompt_detect, f"Found overdue invoice from {customer}: ₹{overdue_amount:,} ({days_overdue} days overdue)")
+        
         await self._log(entity_id, trace_id, "CollectionsBot", "OVERDUE_DETECTED",
             severity="WARNING",
-            summary=f"Found overdue invoice from {customer}: ₹{overdue_amount:,} ({days_overdue} days overdue)",
+            summary=summary_detect,
             details={"customer": customer, "amount": overdue_amount, "days_overdue": days_overdue,
                      "next_action": "Requesting risk assessment from RiskSentinel"})
         
         await asyncio.sleep(random.uniform(0.3, 0.8))
         
         # Step 2: CollectionsBot → RiskSentinel (cross-agent request)
+        prompt_req = f"""You are RiskSentinel. CollectionsBot asked you to assess '{customer}'.
+        Write a concise 1-sentence audit log summary acknowledging the request."""
+        
+        summary_req = await self._generate_text(prompt_req, f"📨 Received request from CollectionsBot → Assessing {customer} risk profile")
+
         await self._log(entity_id, trace_id, "RiskSentinel", "RISK_SCORE_REQUESTED",
             severity="INFO",
-            summary=f"📨 Received request from CollectionsBot → Assessing {customer} risk profile",
+            summary=summary_req,
             details={"requested_by": "CollectionsBot", "target": customer, "risk_score": risk_score,
                      "risk_band": risk_band, "payment_history": f"{random.randint(1,5)} late payments in 6 months"})
         
@@ -62,21 +121,26 @@ class AgentWorkforceService:
         
         # Step 3: RiskSentinel responds → CollectionsBot decides
         if risk_band == "C":
-            action = f"🔴 ESCALATED: {customer} is Band C (High Risk, score {risk_score}). Sending urgent collection notice + considering legal hold."
-            severity = "CRITICAL"
+            risk_desc = "High Risk"
+            sev = "CRITICAL"
         elif risk_band == "B":
-            action = f"🟡 FIRM REMINDER: {customer} is Band B (Medium Risk, score {risk_score}). Scheduling firm payment follow-up for tomorrow."
-            severity = "WARNING"
+            risk_desc = "Medium Risk"
+            sev = "WARNING"
         else:
-            action = f"🟢 GENTLE NUDGE: {customer} is Band A (Low Risk, score {risk_score}). Sending polite reminder email."
-            severity = "INFO"
+            risk_desc = "Low Risk"
+            sev = "INFO"
+
+        prompt_action = f"""You are CollectionsBot. RiskSentinel reported '{customer}' is {risk_desc} (Score {risk_score}).
+        Decide on an action (Urgent notice / Firm reminder / Gentle nudge).
+        Write a concise 1-sentence audit log summary of your decision."""
         
+        summary_action = await self._generate_text(prompt_action, f"📋 Decision based on RiskSentinel analysis → {risk_desc} action taken.")
+
         await self._log(entity_id, trace_id, "CollectionsBot", "DECISION_MADE",
-            severity=severity,
-            summary=f"📋 Decision based on RiskSentinel analysis → {action}",
+            severity=sev,
+            summary=summary_action,
             details={"decided_by": "CollectionsBot", "informed_by": "RiskSentinel",
                      "risk_score": risk_score, "risk_band": risk_band,
-                     "action_type": "escalate" if risk_band == "C" else ("firm_reminder" if risk_band == "B" else "gentle_reminder"),
                      "confidence": round(random.uniform(0.88, 0.99), 2)})
 
     async def _scenario_cashflow_payments(self, entity_id: str):
@@ -120,16 +184,24 @@ class AgentWorkforceService:
 
     async def _scenario_gst_risk(self, entity_id: str):
         """GSTComplianceAgent finds mismatch → RiskSentinel updates credit risk."""
+        vendor = self._get_random_vendor(entity_id)
+        if not vendor: return
+        
         trace_id = f"trace-{uuid.uuid4().hex[:8]}"
         
         mismatches = random.randint(1, 6)
         itc_blocked = random.randint(10000, 80000)
-        vendor = random.choice(["Mehta Fabrics", "Patel Threads", "Sharma Dyes", "Quality Fabrics", "Mumbai Threads"])
         
         # Step 1: GST finds issues
+        prompt_gst = f"""You are GSTComplianceAgent. You found {mismatches} mismatches in GSTR-2A for vendor '{vendor}'.
+        Total ITC blocked: ₹{itc_blocked:,}.
+        Write a concise 1-sentence audit log summary reporting this issue to RiskSentinel."""
+        
+        summary_gst = await self._generate_text(prompt_gst, f"GSTR-2A reconciliation found {mismatches} mismatches. ₹{itc_blocked:,} ITC blocked due to {vendor} non-filing.")
+        
         await self._log(entity_id, trace_id, "GSTComplianceAgent", "RECONCILIATION_ALERT",
             severity="WARNING",
-            summary=f"GSTR-2A reconciliation found {mismatches} mismatches. ₹{itc_blocked:,} ITC blocked due to {vendor} non-filing.",
+            summary=summary_gst,
             details={"mismatches": mismatches, "itc_blocked": itc_blocked,
                      "non_compliant_vendor": vendor, "alerting": "RiskSentinel"})
         
@@ -137,18 +209,30 @@ class AgentWorkforceService:
         
         # Step 2: RiskSentinel reacts
         score_impact = random.randint(-45, -15)
+        prompt_risk = f"""You are RiskSentinel. GSTComplianceAgent reported {vendor} is non-compliant (ITC blocked ₹{itc_blocked:,}).
+        You are lowering credit score by {score_impact} points.
+        Write a concise 1-sentence audit log summary of your action."""
+        
+        summary_risk = await self._generate_text(prompt_risk, f"📨 Received GST alert → Adjusting credit score by {score_impact} points. Vendor {vendor} flagged for review.")
+
         await self._log(entity_id, trace_id, "RiskSentinel", "SCORE_ADJUSTMENT",
             severity="WARNING",
-            summary=f"📨 Received GST alert → Adjusting credit score by {score_impact} points. Vendor {vendor} flagged for review.",
+            summary=summary_risk,
             details={"triggered_by": "GSTComplianceAgent", "score_impact": score_impact,
                      "vendor_flagged": vendor, "recommendation": "Withhold payment until vendor files returns"})
         
         await asyncio.sleep(random.uniform(0.2, 0.5))
         
         # Step 3: GST agent acknowledges
+        prompt_ack = f"""You are GSTComplianceAgent. RiskSentinel confirmed action on {vendor}.
+        You are sending a compliance reminder.
+        Write a concise 1-sentence audit log summary."""
+        
+        summary_ack = await self._generate_text(prompt_ack, f"✅ RiskSentinel confirmed. Auto-drafting compliance reminder to {vendor}. ITC recovery plan initiated.")
+
         await self._log(entity_id, trace_id, "GSTComplianceAgent", "VENDOR_ACTION",
             severity="INFO",
-            summary=f"✅ RiskSentinel confirmed. Auto-drafting compliance reminder to {vendor}. ITC recovery plan initiated.",
+            summary=summary_ack,
             details={"vendor": vendor, "action": "compliance_reminder_sent",
                      "collaboration": "GSTComplianceAgent ↔ RiskSentinel"})
 
@@ -180,9 +264,11 @@ class AgentWorkforceService:
 
     async def _scenario_risk_payments_cashflow(self, entity_id: str):
         """Three-agent chain: RiskSentinel flags → PaymentsOptimizer adjusts → CashFlowGuard validates."""
+        supplier = self._get_random_vendor(entity_id)
+        if not supplier: return
+        
         trace_id = f"trace-{uuid.uuid4().hex[:8]}"
         
-        supplier = random.choice(["Mehta Fabrics", "Quality Fabrics", "Mumbai Threads"])
         risk_level = random.choice(["HIGH", "CRITICAL"])
         amount_at_risk = random.randint(50000, 200000)
         

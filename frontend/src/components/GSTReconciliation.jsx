@@ -1,16 +1,8 @@
-import { useState } from 'react'
-import { FileCheck, CheckCircle, AlertTriangle, XCircle, Search, Download, Mail, ArrowUpRight } from 'lucide-react'
+import { useState, useEffect } from 'react'
+import { FileCheck, CheckCircle, AlertTriangle, XCircle, Search, Download, Mail, ArrowUpRight, UploadCloud } from 'lucide-react'
 
-const reconciliationData = [
-    { id: 1, vendorName: 'TechParts India Pvt Ltd', vendorGstin: '29AABCT1234A1ZH', invoiceNo: 'INV-2025-0847', gstrInvoice: 'INV-2025-0847', invoiceDate: '2026-01-15', amount: 245000, gstrAmount: 245000, matchType: 'exact', itcEligible: 44100, status: 'matched' },
-    { id: 2, vendorName: 'RawMat Suppliers', vendorGstin: '27AADCR5678B1ZG', invoiceNo: 'RM-1023', gstrInvoice: 'RM-01023', invoiceDate: '2026-01-18', amount: 182500, gstrAmount: 182500, matchType: 'fuzzy', itcEligible: 32850, status: 'matched' },
-    { id: 3, vendorName: 'Office Solutions Co.', vendorGstin: '29BBAOS9012C1ZF', invoiceNo: 'OS-2026-445', gstrInvoice: 'OS-2026-445', invoiceDate: '2026-01-22', amount: 67800, gstrAmount: 67800, matchType: 'exact', itcEligible: 12204, status: 'matched' },
-    { id: 4, vendorName: 'LogiFreight Services', vendorGstin: '33AACFL3456D1ZE', invoiceNo: 'LF-8822', gstrInvoice: 'LF-8822', invoiceDate: '2026-01-25', amount: 95200, gstrAmount: 89000, matchType: 'mismatch', itcEligible: 0, status: 'mismatch', diff: 6200 },
-    { id: 5, vendorName: 'CloudWare Technologies', vendorGstin: '06AABCC7890E1ZD', invoiceNo: 'CW-INV-312', gstrInvoice: null, invoiceDate: '2026-02-01', amount: 156000, gstrAmount: 0, matchType: 'missing', itcEligible: 0, status: 'missing' },
-    { id: 6, vendorName: 'Bharat Steel Works', vendorGstin: '24AABBS2345F1ZC', invoiceNo: 'BSW-7701', gstrInvoice: 'BSW-7701', invoiceDate: '2026-02-03', amount: 428000, gstrAmount: 428000, matchType: 'exact', itcEligible: 77040, status: 'matched' },
-    { id: 7, vendorName: 'SafeGuard Insurance', vendorGstin: '29AABSI6789G1ZB', invoiceNo: 'SG-POL-2026', gstrInvoice: 'SG-POL-2026', invoiceDate: '2026-02-05', amount: 34500, gstrAmount: 34500, matchType: 'exact', itcEligible: 6210, status: 'matched' },
-    { id: 8, vendorName: 'Vijay Packaging', vendorGstin: '29AADPV1234H1ZA', invoiceNo: 'VP-556', gstrInvoice: 'VP-0556', invoiceDate: '2026-02-08', amount: 72000, gstrAmount: 73200, matchType: 'fuzzy', itcEligible: 12960, status: 'matched', diff: 1200 },
-]
+// Empty for now as backend ingestion does not yet support line-level reconciliation
+const reconciliationData = []
 
 const MatchBadge = ({ type }) => {
     const config = {
@@ -30,6 +22,46 @@ const MatchBadge = ({ type }) => {
 export default function GSTReconciliation() {
     const [filter, setFilter] = useState('all')
     const [searchTerm, setSearchTerm] = useState('')
+
+    // Fallback if data is empty
+    if (!reconciliationData || reconciliationData.length === 0) {
+        return (
+            <div style={{ padding: '0 8px' }}>
+                <div style={{ marginBottom: 24 }}>
+                    <h2 style={{ fontSize: 22, fontWeight: 700, display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+                        <FileCheck size={22} color="#f59e0b" />
+                        GST Reconciliation Engine
+                    </h2>
+                    <p style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                        Automated GSTR-2A/2B matching against your Purchase Register
+                    </p>
+                </div>
+
+                <div className="card" style={{
+                    padding: 48,
+                    display: 'flex',
+                    flexDirection: 'column',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    textAlign: 'center',
+                    minHeight: 300
+                }}>
+                    <div style={{
+                        width: 80, height: 80, borderRadius: '50%',
+                        background: 'rgba(245,158,11,0.1)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        marginBottom: 24
+                    }}>
+                        <UploadCloud size={40} color="#f59e0b" />
+                    </div>
+                    <h3 style={{ fontSize: 18, fontWeight: 600, marginBottom: 8, color: 'var(--text-primary)' }}>No GST Data Found</h3>
+                    <p style={{ fontSize: 14, color: 'var(--text-muted)', maxWidth: 400, marginBottom: 24 }}>
+                        Upload your GSTR-2A/2B files to start the automated reconciliation process and identify ITC mismatches.
+                    </p>
+                </div>
+            </div>
+        )
+    }
 
     const totalInvoices = reconciliationData.length
     const matched = reconciliationData.filter(r => r.status === 'matched').length

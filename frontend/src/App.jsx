@@ -456,7 +456,7 @@ function ScenarioView({ entityId, currentBurn }) {
 // Data Upload Component From Previous Step
 function DataUpload({ entityId, onUploadSuccess }) {
     const { token } = useAuth()
-    const [uploadType, setUploadType] = useState('ledger')
+    const [uploadType, setUploadType] = useState('bank')
     const [file, setFile] = useState(null)
     const [uploading, setUploading] = useState(false)
     const [result, setResult] = useState(null)
@@ -880,6 +880,7 @@ import {
     IncomeTrackerCard
 } from './components/ZentraDashboard'
 import DarkForecastChart from './components/DarkForecastChart'
+import CashflowHeatmap from './components/CashflowHeatmap'
 
 // Main App Controller
 export default function App() {
@@ -1035,7 +1036,7 @@ export default function App() {
 
     return (
         <div className="dashboard">
-            {showOnboarding && <OnboardingWizard onComplete={handleOnboardingComplete} />}
+            {showOnboarding && <OnboardingWizard entityId={currentEntity?.id} onComplete={handleOnboardingComplete} />}
 
             <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} />
 
@@ -1087,7 +1088,12 @@ export default function App() {
                 </header>
 
                 {activeTab === 'dashboard' && (
-                    <SaasDashboard openCopilot={openCopilot} />
+                    <>
+                        <SaasDashboard openCopilot={openCopilot} />
+                        <div style={{ padding: '0 24px 24px 24px' }}>
+                            <CashflowHeatmap />
+                        </div>
+                    </>
                 )}
 
                 {activeTab === 'integrations' && <DPIStackHub />}

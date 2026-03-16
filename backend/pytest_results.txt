@@ -1,0 +1,152 @@
+﻿============================= test session starts =============================
+platform win32 -- Python 3.14.0, pytest-9.0.2, pluggy-1.6.0
+rootdir: D:\1.Education\smartflow-sme-intelligence\backend
+configfile: pyproject.toml
+plugins: anyio-4.11.0, Faker-40.1.2, langsmith-0.4.59
+collected 9 items
+
+scripts\test_llm_integration.py .                                        [ 11%]
+tests\test_agents_demo.py FFFF.                                          [ 66%]
+tests\test_services.py ...                                               [100%]
+
+================================== FAILURES ===================================
+___________________________ test_collections_agent ____________________________
+
+    def test_collections_agent():
+        """Test the Collections Agent."""
+        print("\n" + "="*60)
+        print("\U0001f50d Testing Collections Agent")
+        print("="*60)
+    
+        from app.agents.collections_agent import run_collections_agent
+    
+        result = run_collections_agent("test-entity-001")
+        print("\\n\U0001f4cb Result:")
+>       print(result.get("output", result))
+              ^^^^^^^^^^
+E       AttributeError: 'coroutine' object has no attribute 'get'
+
+tests\test_agents_demo.py:19: AttributeError
+---------------------------- Captured stdout call -----------------------------
+\n============================================================\n\U0001f50d Testing Collections Agent\n============================================================\n\n\U0001f4cb Result:
+_____________________________ test_payments_agent _____________________________
+
+    def test_payments_agent():
+        """Test the Payments Agent."""
+        print("\n" + "="*60)
+        print("\U0001f4b0 Testing Payments Agent")
+        print("="*60)
+    
+        from app.agents.payments_agent import run_payments_agent
+    
+        result = run_payments_agent("test-entity-001")
+        print("\\n\U0001f4cb Result:")
+>       print(result.get("output", result))
+              ^^^^^^^^^^
+E       AttributeError: 'coroutine' object has no attribute 'get'
+
+tests\test_agents_demo.py:32: AttributeError
+---------------------------- Captured stdout call -----------------------------
+\n============================================================\n\U0001f4b0 Testing Payments Agent\n============================================================\n\n\U0001f4cb Result:
+_______________________________ test_gst_agent ________________________________
+
+    def test_gst_agent():
+        """Test the GST Agent."""
+        print("\n" + "="*60)
+        print("\U0001f4ca Testing GST Agent")
+        print("="*60)
+    
+        from app.agents.gst_agent import run_gst_agent
+    
+        result = run_gst_agent("test-entity-001")
+        print("\\n\U0001f4cb Result:")
+>       print(result.get("output", result))
+              ^^^^^^^^^^
+E       AttributeError: 'coroutine' object has no attribute 'get'
+
+tests\test_agents_demo.py:45: AttributeError
+---------------------------- Captured stdout call -----------------------------
+\n============================================================\n\U0001f4ca Testing GST Agent\n============================================================\n\n\U0001f4cb Result:
+_________________________ test_credit_advisory_agent __________________________
+
+    def test_credit_advisory_agent():
+        """Test the Credit Advisory Agent."""
+        print("\n" + "="*60)
+        print("\U0001f4a1 Testing Credit Advisory Agent")
+        print("="*60)
+    
+        from app.agents.credit_advisory_agent import run_credit_advisory_agent
+    
+        result = run_credit_advisory_agent("test-entity-001")
+        print("\\n\U0001f4cb Result:")
+>       print(result.get("output", result))
+              ^^^^^^^^^^
+E       AttributeError: 'coroutine' object has no attribute 'get'
+
+tests\test_agents_demo.py:58: AttributeError
+---------------------------- Captured stdout call -----------------------------
+\n============================================================\n\U0001f4a1 Testing Credit Advisory Agent\n============================================================\n\n\U0001f4cb Result:
+============================== warnings summary ===============================
+tests/test_agents_demo.py::test_llm_connection
+  C:\Users\yashw\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\python.py:170: PytestReturnNotNoneWarning: Test functions should return None, but tests/test_agents_demo.py::test_llm_connection returned <class 'bool'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+tests/test_services.py::test_forecasting_service
+  C:\Users\yashw\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pydantic_settings\sources\providers\aws.py:8: RuntimeWarning: coroutine 'run_collections_agent' was never awaited
+    from .env import EnvSettingsSource
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_services.py::test_forecasting_service
+  C:\Users\yashw\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pydantic_settings\sources\providers\aws.py:8: RuntimeWarning: coroutine 'run_payments_agent' was never awaited
+    from .env import EnvSettingsSource
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_services.py::test_forecasting_service
+  C:\Users\yashw\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pydantic_settings\sources\providers\aws.py:8: RuntimeWarning: coroutine 'run_gst_agent' was never awaited
+    from .env import EnvSettingsSource
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_services.py::test_forecasting_service
+  C:\Users\yashw\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\pydantic_settings\sources\providers\aws.py:8: RuntimeWarning: coroutine 'run_credit_advisory_agent' was never awaited
+    from .env import EnvSettingsSource
+  Enable tracemalloc to get traceback where the object was allocated.
+  See https://docs.pytest.org/en/stable/how-to/capture-warnings.html#resource-warnings for more info.
+
+tests/test_services.py::test_forecasting_service
+  D:\1.Education\smartflow-sme-intelligence\backend\app\config.py:6: PydanticDeprecatedSince20: Support for class-based `config` is deprecated, use ConfigDict instead. Deprecated in Pydantic V2.0 to be removed in V3.0. See Pydantic V2 Migration Guide at https://errors.pydantic.dev/2.12/migration/
+    class Settings(BaseSettings):
+
+tests/test_services.py::test_forecasting_service
+  D:\1.Education\smartflow-sme-intelligence\backend\app\db\database.py:8: MovedIn20Warning: The ``declarative_base()`` function is now available as sqlalchemy.orm.declarative_base(). (deprecated since: 2.0) (Background on SQLAlchemy 2.0 at: https://sqlalche.me/e/b8d9)
+    Base = declarative_base()
+
+tests/test_services.py::test_forecasting_service
+  C:\Users\yashw\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\python.py:170: PytestReturnNotNoneWarning: Test functions should return None, but tests/test_services.py::test_forecasting_service returned <class 'dict'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+tests/test_services.py::test_scoring_service
+  C:\Users\yashw\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\python.py:170: PytestReturnNotNoneWarning: Test functions should return None, but tests/test_services.py::test_scoring_service returned <class 'dict'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+tests/test_services.py::test_tools
+  C:\Users\yashw\AppData\Local\Python\pythoncore-3.14-64\Lib\site-packages\_pytest\python.py:170: PytestReturnNotNoneWarning: Test functions should return None, but tests/test_services.py::test_tools returned <class 'bool'>.
+  Did you mean to use `assert` instead of `return`?
+  See https://docs.pytest.org/en/stable/how-to/assert.html#return-not-none for more information.
+    warnings.warn(
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+FAILED tests/test_agents_demo.py::test_collections_agent - AttributeError: 'c...
+FAILED tests/test_agents_demo.py::test_payments_agent - AttributeError: 'coro...
+FAILED tests/test_agents_demo.py::test_gst_agent - AttributeError: 'coroutine...
+FAILED tests/test_agents_demo.py::test_credit_advisory_agent - AttributeError...
+================== 4 failed, 5 passed, 10 warnings in 26.39s ==================

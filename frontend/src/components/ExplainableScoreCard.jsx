@@ -68,7 +68,23 @@ export default function ExplainableScoreCard({ scoreData, loading }) {
     if (!scoreData) return null
 
     // Support both backend field names: 'score' and 'credit_score'
-    const score = scoreData.score || scoreData.credit_score || 0
+    const rawScore = scoreData.score !== undefined ? scoreData.score : scoreData.credit_score
+
+    if (rawScore === null) {
+        return (
+            <div className="card" style={{ padding: 24, height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', textAlign: 'center' }}>
+                <div style={{ padding: 16, background: 'var(--bg-muted)', borderRadius: '50%', marginBottom: 16 }}>
+                    <Info size={32} color="var(--text-muted)" />
+                </div>
+                <h3 style={{ fontSize: 16, fontWeight: 600, marginBottom: 8 }}>Credit Score Unavailable</h3>
+                <p style={{ fontSize: 13, color: 'var(--text-muted)', maxWidth: 280 }}>
+                    We don't have enough financial data to calculate your Explainable AI Credit Score yet.
+                </p>
+            </div>
+        )
+    }
+
+    const score = rawScore || 0
     const risk_band = scoreData.risk_band || 'N/A'
     const risk_label = scoreData.risk_label || scoreData.risk_level || ''
     const factors = scoreData.factors || []

@@ -182,6 +182,12 @@ We explicitly model two seasonality components relevant to Indian SMEs:
     \item \textbf{Monthly Seasonality}: Modeled with a Fourier order of 5 and a period of 30.5 days to capture salary payouts (usually 1st-5th of month) and rent cycles.
 \end{itemize}
 The model is configured with a conservative change point prior scale ($0.05$) to avoid overfitting to transient volatility, ensuring the forecast remains robust against one-off large transactions.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\linewidth]{forecasting_comparison.png}
+\caption{Forecasting Performance: SmartFlow (Prophet) vs Traditional Smoothing. SmartFlow captures the weekly seasonality inherent in B2B transactions, whereas moving averages lag significantly.}
+\label{fig:forecast_comparison}
+\end{figure}
 
 \subsection{Weighted Ensemble Moving Average (WEMA)}
 For "Cold Start" scenarios where historical data is sparse, Prophet's performance degrades. We implemented a robust fallback mechanism using a Weighted Ensemble Moving Average. This ensures that a new user gets immediate value without waiting weeks for data accumulation.
@@ -250,6 +256,19 @@ To interpret this "black box," we utilize TreeExplainer from the SHAP library.
 \phi_i(f, x) = \sum_{z' \subseteq x'} \frac{|z'|!(M-|z'|-1)!}{M!} [f_x(z') - f_x(z' \setminus i)]
 \end{equation}
 This formula calculates the marginal contribution of feature $i$ across all possible coalitions of features. In the UI, this translates to green/red bars showing exactly how much "GST Compliance" or "DSO" contributed to the final score.
+\begin{figure}[h]
+\centering
+\includegraphics[width=1.0\linewidth]{credit_risk_roc.png}
+\caption{Receiver Operating Characteristic (ROC) Curve. SmartFlow's XGBoost model (AUC=0.91) significantly outperforms the Logistic Regression baseline (AUC=0.78), demonstrating superior default prediction capability.}
+\label{fig:credit_risk_roc}
+\end{figure}
+
+\begin{figure}[h]
+\centering
+\includegraphics[width=1.0\linewidth]{credit_risk_shap.png}
+\caption{SHAP Feature Importance Analysis. Balance Volatility and Inflow Consistency emerge as the top predictors of creditworthiness, aligning with SME liquidity constraints.}
+\label{fig:credit_risk_shap}
+\end{figure}
 
 \subsection{Health Pulse Composite}
 Beyond credit risk, we define a holistic "Business Health Pulse" ($H$) combining four weighted dimensions:
@@ -280,6 +299,12 @@ A distinguishing feature of SmartFlow is its ability to simulate the financial "
         \item Case B: Risk Score $<500$. RiskSentinel advises "High Risk". CollectionsBot generates a formal demand notice and flags the account for "Legal Hold".
     \end{itemize}
 4. \textbf{Learning}: The outcome (paid/unpaid) is fed back into the RiskSentinel to refine future scores for ABC Textiles.
+\begin{figure}[h]
+\centering
+\includegraphics[width=0.9\linewidth]{agent_simulation_impact.png}
+\caption{Impact of Agent Intervention on Cash Flow Runway. The passive scenario hits a liquidity crunch on Day 25, while active agent management extends operations indefinitely.}
+\label{fig:agent_sim}
+\end{figure}
 
 \subsubsection{Scenario 2: The Runway-Payment Loop}
 The \textbf{CashFlowGuard} monitors the forecast.
@@ -323,7 +348,7 @@ The system is deployed using a containerized microservices architecture orchestr
 \label{fig:arch}
 \end{figure}
 
-The \textbf{Redis Cache} is utilized to store ephemeral agent states and recently computed forecasts, significantly reducing database load during high-concurrency "Health Sweeps". This cache invalidation strategy follows a time-to-live (TTL) policy synchronized with the ledger update frequency (typically daily).
+
 
 \section{Experimental Evaluation}
 

@@ -8,7 +8,8 @@ from app.agents.tools import (
     get_cash_forecast,
     get_pending_payables,
     schedule_payment,
-    add_ledger_transaction
+    add_ledger_transaction,
+    analyze_ledger_spending
 )
 
 
@@ -41,9 +42,9 @@ class PaymentsAgent(BaseAgent):
     
     @property
     def tools(self) -> list:
-        return [get_cash_forecast, get_pending_payables, schedule_payment, add_ledger_transaction]
+        return [get_cash_forecast, get_pending_payables, schedule_payment, add_ledger_transaction, analyze_ledger_spending]
     
-    def run(self, task: str = "Create an optimized payment schedule for the next 30 days") -> Dict[str, Any]:
+    async def run(self, task: str = "Create an optimized payment schedule for the next 30 days") -> Dict[str, Any]:
         """Execute the payments agent using direct tool invocation."""
         from app.agents.tools import set_db_session
         from app.db.database import SessionLocal
@@ -61,10 +62,20 @@ class PaymentsAgent(BaseAgent):
             except Exception:
                 forecast_report = "Cash forecast unavailable."
             
-            # Step 3: Compose analysis
+            # Step 3: Analyze historical spending
+            try:
+                spending_analysis = analyze_ledger_spending.invoke(self.entity_id)
+            except Exception:
+                spending_analysis = "Spending analysis unavailable."
+            
+            # Step 4: Compose analysis
             output = f"""💰 **Payments Agent Analysis**
 
 {payables_report}
+
+---
+
+{spending_analysis}
 
 ---
 
@@ -88,7 +99,7 @@ class PaymentsAgent(BaseAgent):
             db.close()
 
 
-def run_payments_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
+async def run_payments_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
     """Convenience function to run the payments agent."""
     agent = PaymentsAgent(entity_id)
-    return agent.run(task or "Create an optimized payment schedule for the next 30 days")
+    return await agent.run(task or "Create an optimized payment schedule for the next 30 days")

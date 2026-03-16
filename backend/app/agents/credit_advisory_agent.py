@@ -107,7 +107,7 @@ class CreditAdvisoryAgent(BaseAgent):
     def tools(self) -> list:
         return [get_entity_credit_score, calculate_cash_runway, get_cash_forecast]
     
-    def run(self, task: str = "Provide a comprehensive financial health assessment and recommendations") -> Dict[str, Any]:
+    async def run(self, task: str = "Provide a comprehensive financial health assessment and recommendations") -> Dict[str, Any]:
         """Execute the credit advisory agent — query-aware."""
         from app.agents.tools import set_db_session
         from app.db.database import SessionLocal
@@ -166,7 +166,7 @@ class CreditAdvisoryAgent(BaseAgent):
                 LedgerEntry.entity_id == self.entity_id
             ).scalar()
             if bal:
-                initial_balance = abs(float(bal))
+                initial_balance = float(bal)
         
         daily_forecasts = forecast.get('daily_forecast', [])
         net_flow = forecast.get('summary', {}).get('net_cash_flow', 0)
@@ -267,7 +267,7 @@ class CreditAdvisoryAgent(BaseAgent):
         return {"output": output, "agent": self.name}
 
 
-def run_credit_advisory_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
+async def run_credit_advisory_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
     """Convenience function to run the credit advisory agent."""
     agent = CreditAdvisoryAgent(entity_id)
-    return agent.run(task or "Provide a comprehensive financial health assessment and recommendations")
+    return await agent.run(task or "Provide a comprehensive financial health assessment and recommendations")

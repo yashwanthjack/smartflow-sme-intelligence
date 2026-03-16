@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useAuth } from '../AuthContext'
-import { AlertTriangle, Phone, Mail, Clock, DollarSign, ChevronRight } from 'lucide-react'
+import { AlertTriangle, Phone, Mail, Clock, DollarSign, ChevronRight, Sparkles, X, Send, CheckCircle } from 'lucide-react'
 
 const API_BASE = '/api'
 
@@ -42,6 +42,32 @@ export default function CollectionsPlan({ entityId }) {
     const [data, setData] = useState(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState(null)
+    const [selectedInvoice, setSelectedInvoice] = useState(null)
+    const [isDrafting, setIsDrafting] = useState(false)
+    const [draftedText, setDraftedText] = useState('')
+    const [emailSent, setEmailSent] = useState(false)
+
+    const handleMagicDraft = (e, action) => {
+        e.stopPropagation()
+        setSelectedInvoice(action)
+        setIsDrafting(true)
+        setDraftedText('')
+        setEmailSent(false)
+
+        // Simulate AI generating a personalized email
+        setTimeout(() => {
+            setIsDrafting(false)
+            setDraftedText(`Subject: Action Required: Overdue Payment for ${action.invoice_number || 'Invoice'}\n\nDear Client,\n\nWe hope this email finds you well.\n\nThis is a polite reminder that payment of ${formatINR(action.amount)} for invoice ${action.invoice_number || 'Invoice'} is currently ${action.days_overdue} days overdue (Due Date: ${action.due_date}).\n\nGiven your valued relationship with us, we wanted to personally reach out to ensure you received the invoice and avoid any late penalties. Please process the payment at your earliest convenience.\n\nLet us know if you need another copy of the invoice.\n\nBest regards,\nSmartFlow Collections AI`)
+        }, 2500)
+    }
+
+    const handleSendEmail = () => {
+        setEmailSent(true)
+        setTimeout(() => {
+            setSelectedInvoice(null)
+            setEmailSent(false)
+        }, 2000)
+    }
 
     useEffect(() => {
         if (!entityId || !token) return
@@ -167,11 +193,181 @@ export default function CollectionsPlan({ entityId }) {
                                     {action.recommended_action}
                                 </div>
                             </div>
-                            <ChevronRight size={16} color="var(--text-muted)" />
+
+                            <button
+                                onClick={(e) => handleMagicDraft(e, action)}
+                                style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: 6,
+                                    padding: '6px 12px',
+                                    borderRadius: 6,
+                                    background: 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)',
+                                    color: 'white',
+                                    border: 'none',
+                                    cursor: 'pointer',
+                                    fontSize: 12,
+                                    fontWeight: 500,
+                                    marginLeft: 'auto',
+                                    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+                                    boxShadow: '0 2px 10px rgba(217, 70, 239, 0.3)'
+                                }}
+                                onMouseOver={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(-1px)'
+                                    e.currentTarget.style.boxShadow = '0 4px 15px rgba(217, 70, 239, 0.4)'
+                                }}
+                                onMouseOut={(e) => {
+                                    e.currentTarget.style.transform = 'translateY(0)'
+                                    e.currentTarget.style.boxShadow = '0 2px 10px rgba(217, 70, 239, 0.3)'
+                                }}
+                            >
+                                <Sparkles size={14} /> Magic Draft
+                            </button>
                         </div>
                     ))
                 )}
             </div>
+
+            {/* Magic Draft Modal */}
+            {selectedInvoice && (
+                <div style={{
+                    position: 'fixed',
+                    top: 0, left: 0, right: 0, bottom: 0,
+                    background: 'rgba(0,0,0,0.6)',
+                    backdropFilter: 'blur(4px)',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    zIndex: 1000,
+                    animation: 'fadeIn 0.2s ease-out'
+                }}>
+                    <div style={{
+                        background: 'var(--card-bg)',
+                        border: '1px solid var(--border-color)',
+                        borderRadius: 16,
+                        width: '100%',
+                        maxWidth: 500,
+                        padding: 24,
+                        boxShadow: '0 20px 40px rgba(0,0,0,0.4)',
+                        position: 'relative'
+                    }}>
+                        <button
+                            onClick={() => setSelectedInvoice(null)}
+                            style={{
+                                position: 'absolute', top: 16, right: 16,
+                                background: 'transparent',
+                                border: 'none',
+                                color: 'var(--text-muted)',
+                                cursor: 'pointer'
+                            }}
+                        >
+                            <X size={20} />
+                        </button>
+
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 20 }}>
+                            <div style={{
+                                width: 40, height: 40, borderRadius: '50%',
+                                background: 'linear-gradient(135deg, #8b5cf6 0%, #d946ef 100%)',
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                color: 'white'
+                            }}>
+                                <Sparkles size={20} />
+                            </div>
+                            <div>
+                                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>AI Magic Draft</h3>
+                                <p style={{ margin: 0, fontSize: 12, color: 'var(--text-muted)' }}>
+                                    Drafting for {selectedInvoice.invoice_number || 'Invoice'} • {formatINR(selectedInvoice.amount)}
+                                </p>
+                            </div>
+                        </div>
+
+                        {isDrafting ? (
+                            <div style={{ padding: '40px 20px', textAlign: 'center' }}>
+                                <div className="loading-spinner" style={{ margin: '0 auto 16px' }} />
+                                <div style={{
+                                    fontSize: 15,
+                                    fontWeight: 500,
+                                    background: 'linear-gradient(90deg, #8b5cf6, #d946ef, #8b5cf6)',
+                                    backgroundSize: '200% auto',
+                                    color: 'transparent',
+                                    WebkitBackgroundClip: 'text',
+                                    animation: 'gradientFlow 2s linear infinite'
+                                }}>
+                                    Analyzing payment history & drafting personalized email...
+                                </div>
+                                <style>{`
+                                    @keyframes gradientFlow {
+                                        0% { background-position: 0% center; }
+                                        100% { background-position: 200% center; }
+                                    }
+                                    @keyframes fadeIn {
+                                        from { opacity: 0; transform: translateY(10px); }
+                                        to { opacity: 1; transform: translateY(0); }
+                                    }
+                                `}</style>
+                            </div>
+                        ) : emailSent ? (
+                            <div style={{ padding: '40px 20px', textAlign: 'center', color: '#10b981', animation: 'fadeIn 0.3s ease-out' }}>
+                                <CheckCircle size={48} style={{ margin: '0 auto 16px', display: 'block' }} />
+                                <h3 style={{ margin: 0, fontSize: 18, fontWeight: 600 }}>Email Sent Successfully!</h3>
+                            </div>
+                        ) : (
+                            <div style={{ animation: 'fadeIn 0.3s ease-out' }}>
+                                <div style={{
+                                    background: 'rgba(255,255,255,0.03)',
+                                    border: '1px solid rgba(255,255,255,0.1)',
+                                    borderRadius: 8,
+                                    padding: 16,
+                                    marginBottom: 20,
+                                    position: 'relative'
+                                }}>
+                                    <textarea
+                                        value={draftedText}
+                                        onChange={(e) => setDraftedText(e.target.value)}
+                                        style={{
+                                            width: '100%',
+                                            minHeight: 200,
+                                            background: 'transparent',
+                                            border: 'none',
+                                            color: 'var(--text-color)',
+                                            fontSize: 14,
+                                            lineHeight: 1.6,
+                                            outline: 'none',
+                                            resize: 'vertical',
+                                            fontFamily: 'inherit'
+                                        }}
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={handleSendEmail}
+                                    style={{
+                                        width: '100%',
+                                        padding: 14,
+                                        borderRadius: 8,
+                                        background: 'linear-gradient(135deg, #10b981 0%, #059669 100%)',
+                                        color: 'white',
+                                        border: 'none',
+                                        cursor: 'pointer',
+                                        fontSize: 15,
+                                        fontWeight: 600,
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        gap: 8,
+                                        transition: 'transform 0.2s ease',
+                                        boxShadow: '0 4px 12px rgba(16, 185, 129, 0.3)'
+                                    }}
+                                    onMouseOver={(e) => e.currentTarget.style.transform = 'translateY(-1px)'}
+                                    onMouseOut={(e) => e.currentTarget.style.transform = 'translateY(0)'}
+                                >
+                                    <Send size={18} /> Send Reminder
+                                </button>
+                            </div>
+                        )}
+                    </div>
+                </div>
+            )}
         </div>
     )
 }

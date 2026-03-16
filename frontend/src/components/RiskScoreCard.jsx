@@ -62,7 +62,27 @@ export default function RiskScoreCard({ entityId }) {
         return null
     }
 
-    const scorePercent = Math.min(100, Math.max(0, (data.credit_score / 900) * 100))
+    const scorePercent = data.credit_score ? Math.min(100, Math.max(0, (data.credit_score / 900) * 100)) : 0
+
+    if (data.credit_score === null) {
+        return (
+            <div className="card" style={{ padding: 24 }}>
+                <h3 style={{ fontSize: 14, fontWeight: 500, marginBottom: 16, display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <Shield size={18} color="#9ca3af" />
+                    Credit Risk Assessment
+                </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: 200, gap: 12 }}>
+                    <div style={{ width: 64, height: 64, borderRadius: '50%', background: '#f3f4f6', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                        <Shield size={32} color="#9ca3af" />
+                    </div>
+                    <div style={{ textAlign: 'center' }}>
+                        <h4 style={{ margin: '0 0 4px 0', fontSize: 16, fontWeight: 600, color: 'var(--text-primary)' }}>No Data Available</h4>
+                        <p style={{ margin: 0, fontSize: 13, color: 'var(--text-muted)' }}>Upload financial documents to generate score</p>
+                    </div>
+                </div>
+            </div>
+        )
+    }
 
     return (
         <div className="card" style={{ padding: 24 }}>

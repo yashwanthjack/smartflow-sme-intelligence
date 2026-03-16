@@ -55,6 +55,14 @@ class ForecastingService:
             for r in results
         ])
         
+        # Data Cleaning: Filter out invalid dates (e.g. year 2368 causing overflow)
+        df['ds'] = pd.to_datetime(df['ds'], errors='coerce')
+        df = df.dropna(subset=['ds'])
+        df = df[df['ds'] < '2100-01-01']
+        
+        if df.empty:
+            return self._get_mock_data()
+        
         return df
     
     def _get_mock_data(self) -> pd.DataFrame:

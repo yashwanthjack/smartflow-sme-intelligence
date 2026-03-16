@@ -1,7 +1,10 @@
 # Agent API Router
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from typing import Optional, Dict, Any
+
+from app.auth import get_current_active_user
+from app.models.user import User
 
 from app.agents.collections_agent import run_collections_agent
 from app.agents.payments_agent import run_payments_agent
@@ -10,6 +13,10 @@ from app.agents.credit_advisory_agent import run_credit_advisory_agent
 from app.agents.supervisor_agent import run_supervisor, run_full_analysis, classify_intent
 
 router = APIRouter()
+
+def verify_entity_access(user: User, entity_id: str):
+    if str(user.entity_id) != str(entity_id):
+        raise HTTPException(status_code=403, detail="Not authorized to access this entity's data.")
 
 
 class AgentRequest(BaseModel):
@@ -24,11 +31,16 @@ class AgentResponse(BaseModel):
 
 
 @router.post("/collections/{entity_id}", response_model=AgentResponse)
-async def run_collections(entity_id: str, request: AgentRequest = None):
+async def run_collections(
+    entity_id: str, 
+    request: AgentRequest = None,
+    current_user: User = Depends(get_current_active_user)
+):
     """Run the Collections Agent to analyze overdue invoices and create collection plans."""
+    verify_entity_access(current_user, entity_id)
     try:
         task = request.task if request else None
-        result = run_collections_agent(entity_id, task)
+        result = await run_collections_agent(entity_id, task)
         return AgentResponse(
             agent="CollectionsAgent",
             entity_id=entity_id,
@@ -40,11 +52,16 @@ async def run_collections(entity_id: str, request: AgentRequest = None):
 
 
 @router.post("/payments/{entity_id}", response_model=AgentResponse)
-async def run_payments(entity_id: str, request: AgentRequest = None):
+async def run_payments(
+    entity_id: str, 
+    request: AgentRequest = None,
+    current_user: User = Depends(get_current_active_user)
+):
     """Run the Payments Agent to create optimized payment schedules."""
+    verify_entity_access(current_user, entity_id)
     try:
         task = request.task if request else None
-        result = run_payments_agent(entity_id, task)
+        result = await run_payments_agent(entity_id, task)
         return AgentResponse(
             agent="PaymentsAgent",
             entity_id=entity_id,
@@ -56,11 +73,16 @@ async def run_payments(entity_id: str, request: AgentRequest = None):
 
 
 @router.post("/gst/{entity_id}", response_model=AgentResponse)
-async def run_gst(entity_id: str, request: AgentRequest = None):
+async def run_gst(
+    entity_id: str, 
+    request: AgentRequest = None,
+    current_user: User = Depends(get_current_active_user)
+):
     """Run the GST Agent to check compliance and reconciliation."""
+    verify_entity_access(current_user, entity_id)
     try:
         task = request.task if request else None
-        result = run_gst_agent(entity_id, task)
+        result = await run_gst_agent(entity_id, task)
         return AgentResponse(
             agent="GSTAgent",
             entity_id=entity_id,
@@ -72,11 +94,16 @@ async def run_gst(entity_id: str, request: AgentRequest = None):
 
 
 @router.post("/credit-advisory/{entity_id}", response_model=AgentResponse)
-async def run_credit_advisory(entity_id: str, request: AgentRequest = None):
+async def run_credit_advisory(
+    entity_id: str, 
+    request: AgentRequest = None,
+    current_user: User = Depends(get_current_active_user)
+):
     """Run the Credit Advisory Agent for financial health assessment."""
+    verify_entity_access(current_user, entity_id)
     try:
         task = request.task if request else None
-        result = run_credit_advisory_agent(entity_id, task)
+        result = await run_credit_advisory_agent(entity_id, task)
         return AgentResponse(
             agent="CreditAdvisoryAgent",
             entity_id=entity_id,
@@ -135,13 +162,18 @@ class SupervisorResponse(BaseModel):
 
 
 @router.post("/query/{entity_id}", response_model=SupervisorResponse)
-async def query_supervisor(entity_id: str, request: QueryRequest):
+async def query_supervisor(
+    entity_id: str, 
+    request: QueryRequest,
+    current_user: User = Depends(get_current_active_user)
+):
     """
     Unified query endpoint - automatically routes to the best agent.
     The supervisor classifies your query and delegates to Collections, Payments, GST, or Credit agents.
     """
+    verify_entity_access(current_user, entity_id)
     try:
-        result = run_supervisor(entity_id, request.query)
+        result = await run_supervisor(entity_id, request.query)
         return SupervisorResponse(**result)
     except Exception as e:
         return SupervisorResponse(
@@ -153,13 +185,17 @@ async def query_supervisor(entity_id: str, request: QueryRequest):
 
 
 @router.post("/full-analysis/{entity_id}")
-async def full_analysis(entity_id: str):
+async def full_analysis(
+    entity_id: str,
+    current_user: User = Depends(get_current_active_user)
+):
     """
     Run comprehensive analysis using all agents.
     Returns insights on collections, payments, GST, and credit all at once.
     """
+    verify_entity_access(current_user, entity_id)
     try:
-        result = run_full_analysis(entity_id)
+        result = await run_full_analysis(entity_id)
         return {
             "success": True,
             **result

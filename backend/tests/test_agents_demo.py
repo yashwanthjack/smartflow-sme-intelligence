@@ -1,6 +1,7 @@
 # Test script for SmartFlow Agents
 import sys
 import os
+import asyncio
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
 
 from dotenv import load_dotenv
@@ -14,7 +15,7 @@ def test_collections_agent():
     
     from app.agents.collections_agent import run_collections_agent
     
-    result = run_collections_agent("test-entity-001")
+    result = asyncio.run(run_collections_agent("test-entity-001"))
     print("\n📋 Result:")
     print(result.get("output", result))
     return result
@@ -27,7 +28,7 @@ def test_payments_agent():
     
     from app.agents.payments_agent import run_payments_agent
     
-    result = run_payments_agent("test-entity-001")
+    result = asyncio.run(run_payments_agent("test-entity-001"))
     print("\n📋 Result:")
     print(result.get("output", result))
     return result
@@ -40,7 +41,7 @@ def test_gst_agent():
     
     from app.agents.gst_agent import run_gst_agent
     
-    result = run_gst_agent("test-entity-001")
+    result = asyncio.run(run_gst_agent("test-entity-001"))
     print("\n📋 Result:")
     print(result.get("output", result))
     return result
@@ -53,7 +54,7 @@ def test_credit_advisory_agent():
     
     from app.agents.credit_advisory_agent import run_credit_advisory_agent
     
-    result = run_credit_advisory_agent("test-entity-001")
+    result = asyncio.run(run_credit_advisory_agent("test-entity-001"))
     print("\n📋 Result:")
     print(result.get("output", result))
     return result

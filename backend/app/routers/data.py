@@ -584,6 +584,10 @@ async def get_risk_score(entity_id: str, db: Session = Depends(get_db)):
         pd_band = score_data["risk_band"]
         risk_level = score_data.get("risk_label", "Medium")
         pd_percentage = 2.5 # Mock based on band B
+    elif credit_score is None:
+        pd_band = "N/A"
+        risk_level = "No Data"
+        pd_percentage = 0.0
     else:
         if credit_score >= 750:
             pd_band = "A"

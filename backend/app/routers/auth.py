@@ -59,21 +59,17 @@ async def register_user(
             detail="Email already registered"
         )
     
-    # First user is Admin, rest are Viewers
-    user_count = db.query(User).count()
-    role = UserRole.ADMIN if user_count == 0 else UserRole.VIEWER
+    # For MVP: Every new user is an Admin of their own organization
+    role = UserRole.ADMIN
     
-    # Check if we should create a new Entity for this Admin
-    entity_id = None
-    if role == UserRole.ADMIN:
-        from app.models.entity import Entity
-        # Create a new Organization for this Admin
-        org_name = f"{user_data.full_name}'s Organization" if user_data.full_name else "My Organization"
-        new_entity = Entity(name=org_name, entity_type="sme")
-        db.add(new_entity)
-        db.commit()
-        db.refresh(new_entity)
-        entity_id = new_entity.id
+    from app.models.entity import Entity
+    # Create a new Organization for this user
+    org_name = f"{user_data.full_name}'s Organization" if user_data.full_name else "My Organization"
+    new_entity = Entity(name=org_name, entity_type="sme")
+    db.add(new_entity)
+    db.commit()
+    db.refresh(new_entity)
+    entity_id = new_entity.id
     
     new_user = create_user(db, user_data, role=role, entity_id=entity_id)
     return new_user

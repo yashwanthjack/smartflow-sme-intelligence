@@ -42,7 +42,7 @@ class GSTAgent(BaseAgent):
     def tools(self) -> list:
         return [check_gst_compliance, get_gst_reconciliation]
     
-    def run(self, task: str = "Check GST compliance status and identify any issues") -> Dict[str, Any]:
+    async def run(self, task: str = "Check GST compliance status and identify any issues") -> Dict[str, Any]:
         """Execute the GST agent using direct tool invocation and LLM synthesis."""
         from app.agents.tools import set_db_session
         from app.db.database import SessionLocal
@@ -102,7 +102,7 @@ class GSTAgent(BaseAgent):
                     f"Summary:"
                 )
                 
-                response = llm.invoke(formatted_prompt)
+                response = await llm.ainvoke(formatted_prompt)
                 if hasattr(response, 'content'):
                     output = response.content
                 else:
@@ -118,7 +118,7 @@ class GSTAgent(BaseAgent):
             db.close()
 
 
-def run_gst_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
+async def run_gst_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
     """Convenience function to run the GST agent."""
     agent = GSTAgent(entity_id)
-    return agent.run(task or "Check GST compliance status and identify any issues")
+    return await agent.run(task or "Check GST compliance status and identify any issues")
