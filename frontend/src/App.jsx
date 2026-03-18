@@ -74,14 +74,9 @@ const formatINR = (amount) => {
 }
 
 // Sidebar Navigation
-function Sidebar({ activeTab, setActiveTab, onLogout }) {
-    const navItems = [
+function Sidebar({ activeTab, setActiveTab, onLogout, accountCategory }) {
+    const defaultNavItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        // { id: 'integrations', label: 'DPI Stack Hub', icon: Link }, // Hidden for MVP
-        { id: 'gst', label: 'GST Recon', icon: FileText },
-        // { id: 'credit', label: 'Credit Market', icon: Landmark }, // Hidden for MVP
-        // { id: 'supplychain', label: 'Supply Chain', icon: Briefcase }, // Hidden for MVP
-        { id: 'reports', label: 'Reports', icon: BarChart3 },
         { id: 'models', label: 'Models', icon: Activity },
         { id: 'upload', label: 'Upload Data', icon: Upload },
         { id: 'agents', label: 'Copilot', icon: MessageSquare },
@@ -89,6 +84,9 @@ function Sidebar({ activeTab, setActiveTab, onLogout }) {
         { id: 'profile', label: 'Profile & Settings', icon: User },
     ]
 
+    const navItems = accountCategory === 'PERSONAL' 
+        ? defaultNavItems.filter(item => !['gst', 'credit', 'supplychain'].includes(item.id))
+        : defaultNavItems
 
     return (
         <aside className="sidebar">
@@ -613,7 +611,9 @@ function InvoicesTable({ entityId }) {
         })
             .then(res => res.json())
             .then(data => {
-                setInvoices(data.items || [])
+                // Backend returns a list; older UI code expected { items: [] }.
+                const items = Array.isArray(data) ? data : (data.items || [])
+                setInvoices(items)
                 setLoading(false)
             })
             .catch(err => setLoading(false))
@@ -640,10 +640,10 @@ function InvoicesTable({ entityId }) {
                     <tbody>
                         {invoices.map(inv => (
                             <tr key={inv.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <td style={{ padding: 12 }}>{inv.number}</td>
-                                <td style={{ padding: 12 }}>{new Date(inv.date).toLocaleDateString()}</td>
-                                <td style={{ padding: 12 }}>{inv.type.toUpperCase()}</td>
-                                <td style={{ padding: 12, textAlign: 'right' }}>{formatINR(inv.amount)}</td>
+                                <td style={{ padding: 12 }}>{inv.invoice_number}</td>
+                                <td style={{ padding: 12 }}>{inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString() : '-'}</td>
+                                <td style={{ padding: 12 }}>{(inv.invoice_type || '').toUpperCase()}</td>
+                                <td style={{ padding: 12, textAlign: 'right' }}>{formatINR(inv.total_amount ?? inv.amount ?? 0)}</td>
                                 <td style={{ padding: 12 }}>
                                     <span style={{
                                         padding: '2px 8px', borderRadius: 12,
@@ -693,7 +693,7 @@ function RecentActivity({ entityId }) {
                     <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, borderBottom: '1px solid var(--glass-border)', paddingBottom: 8 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <span>{a.description}</span>
-                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(a.date).toLocaleDateString()} • {a.source}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(a.date).toLocaleDateString()} • {a.source_type}</span>
                         </div>
                         <span style={{ fontWeight: 600, color: a.amount > 0 ? 'var(--success)' : 'var(--text-primary)' }}>
                             {formatINR(a.amount)}
@@ -1038,7 +1038,12 @@ export default function App() {
         <div className="dashboard">
             {showOnboarding && <OnboardingWizard entityId={currentEntity?.id} onComplete={handleOnboardingComplete} />}
 
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} />
+            <Sidebar 
+                activeTab={activeTab} 
+                setActiveTab={setActiveTab} 
+                onLogout={logout} 
+                accountCategory={currentEntity?.account_category || 'BUSINESS'}
+            />
 
             <main className="main-content" style={{ paddingBottom: 80 }}>
                 {/* Top Header Row with Global Search */}
@@ -1089,7 +1094,11 @@ export default function App() {
 
                 {activeTab === 'dashboard' && (
                     <>
-                        <SaasDashboard openCopilot={openCopilot} />
+                        <SaasDashboard
+                            openCopilot={openCopilot}
+                            accountCategory={currentEntity?.account_category || 'BUSINESS'}
+                            entityId={currentEntity?.id}
+                        />
                         <div style={{ padding: '0 24px 24px 24px' }}>
                             <CashflowHeatmap />
                         </div>
@@ -1119,7 +1128,7 @@ export default function App() {
 
                 {activeTab === 'profile' && <Profile />}
 
-                {activeTab === 'workforce' && <AgentLogPage />}
+                {activeTab === 'workforce' && <AgentLogPage entityId={currentEntity?.id} />}
 
                 {
                     activeTab === 'agents' && (

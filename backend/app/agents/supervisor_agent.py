@@ -1,16 +1,18 @@
 # Multi-Agent Orchestrator for SmartFlow
 # Intelligent supervisor that understands queries, orchestrates multi-agent
-# collaboration, and synthesizes combined answers.
+# collaboration, and uses LLM to synthesize combined answers.
 
 import re
 from datetime import datetime
 from typing import Dict, Any, List, Optional
+import uuid
+import json
 from app.agents.collections_agent import run_collections_agent
 from app.agents.payments_agent import run_payments_agent
 from app.agents.gst_agent import run_gst_agent
 from app.agents.credit_advisory_agent import run_credit_advisory_agent
-
-# Force reload for GST agent updates
+from app.db.database import SessionLocal
+from app.models.audit_log import AuditLog
 
 
 # ======================================================================
@@ -73,13 +75,13 @@ MULTI_AGENT_PATTERNS = [
         "agents": ["credit", "payments"],
         "type": "loan_advisory"
     },
-    # "how is my business doing" → All agents
+    # "how is my business doing" → Core agents
     {
         "patterns": [r"(how|what).*(business|company|financ).*(doing|look|go|health|status|stand)",
                      r"overall.*(status|health|summary)", r"business health",
                      r"everything", r"full.*(report|analysis|check)", r"complete.*picture"],
-        "agents": ["collections", "payments", "gst", "credit"],
-        "type": "full_health"
+        "agents": ["collections", "payments"],
+        "type": "core_health"
     },
     # "am I safe to pay / can I afford" → Payments + CashFlow
     {
@@ -92,14 +94,14 @@ MULTI_AGENT_PATTERNS = [
     {
         "patterns": [r"collect.*or.*pay", r"pay.*or.*collect", r"what.*should.*focus",
                      r"priority.*today", r"most.*important", r"what.*next", r"action.*(item|plan)"],
-        "agents": ["collections", "payments", "credit"],
+        "agents": ["collections", "payments"],
         "type": "priority_decision"
     },
-    # "am I compliant" → GST + Credit
+    # "am I compliant" → Core agents
     {
         "patterns": [r"(compliant|compliance).*(status|check|ok)", r"any.*(risk|issue|problem|pending)",
                      r"what.*(wrong|issue|problem|pending|concern)"],
-        "agents": ["gst", "credit", "collections"],
+        "agents": ["collections", "payments"],
         "type": "risk_check"
     },
 ]
@@ -139,9 +141,8 @@ def classify_intent(query: str) -> Dict[str, Any]:
     if scores[best_agent] >= 2:
         return {"type": "single", "agent": best_agent}
     
-    # Step 4: For ANY other query — run all agents (don't say "I don't understand")
-    # This ensures queries like "revenue dip when expected?" always get answered
-    return {"type": "multi", "agents": ["collections", "payments", "gst", "credit"], "subtype": "full_health"}
+    # Step 4: For ANY other query — run core agents (collections and payments)
+    return {"type": "multi", "agents": ["collections", "payments"], "subtype": "core_health"}
 
 
 # ======================================================================
@@ -174,8 +175,6 @@ I'll coordinate my agents to give you the best answer!"""
 I coordinate multiple specialist agents that talk to each other:
 • **CollectionsBot** — tracks who owes you money
 • **PaymentsOptimizer** — manages what you owe
-• **GSTComplianceAgent** — watches your tax compliance
-• **CreditAdvisoryAgent** — monitors credit & cash runway
 
 For complex questions, I make them collaborate. Try: "Who should I pay first?" or "How is my business doing?" """
 
@@ -200,88 +199,64 @@ For complex questions, I make them collaborate. Try: "Who should I pay first?" o
 
 
 # ======================================================================
-# MULTI-AGENT SYNTHESIS — the core intelligence
+# LLM-POWERED MULTI-AGENT SYNTHESIS
 # ======================================================================
 
-def _synthesize_payment_priority(results: Dict[str, Any]) -> str:
-    """Combine Payments + Credit data to recommend who to pay first."""
-    payments_data = results.get("payments", {}).get("output", "")
-    credit_data = results.get("credit", {}).get("output", "")
+async def _llm_synthesize(query: str, query_type: str, results: Dict[str, Any]) -> str:
+    """Use Qwen3:8b LLM to synthesize multi-agent outputs into a cohesive answer.
     
-    output = """🧠 **Multi-Agent Decision: Payment Priority**
-_CollectionsBot + PaymentsOptimizer + CashFlowGuard collaborated_
-
-"""
-    # Extract and present prioritized recommendation
-    output += "**Step 1 — PaymentsOptimizer** analyzed your pending bills:\n"
-    # Get the payables section only
-    if "payable" in payments_data.lower() or "pending" in payments_data.lower():
-        # Extract just the payables list
-        lines = payments_data.split("\n")
-        payable_lines = [l for l in lines if "₹" in l and ("due" in l.lower() or "day" in l.lower() or "overdue" in l.lower())]
-        if payable_lines:
-            for line in payable_lines[:5]:
-                output += f"  {line.strip()}\n"
-        else:
-            output += f"  {payments_data[:300]}\n"
+    Instead of hardcoded string concatenation, the LLM reads all agent outputs
+    and generates an intelligent, context-aware combined recommendation.
+    """
+    from app.agents.llm import get_llm
     
-    output += "\n**Step 2 — CashFlowGuard** checked your cash position:\n"
-    if credit_data:
-        # Extract runway info
-        for line in credit_data.split("\n"):
-            if any(w in line.lower() for w in ["runway", "balance", "cash", "healthy", "critical"]):
-                output += f"  {line.strip()}\n"
+    # Build the context from all agent outputs
+    agent_outputs = ""
+    for agent_name, data in results.items():
+        output = data.get("output", "No data available")
+        agent_outputs += f"\n--- {agent_name.upper()} AGENT REPORT ---\n{output}\n"
     
-    output += """
-**Step 3 — Combined Recommendation:**
-1. 🔴 **Pay critical vendors first** — those with due dates within 3 days (avoid penalties & supply chain disruption)
-2. 🟡 **Hold medium-priority payments** if cash runway is under 30 days
-3. 🟢 **Negotiate extended terms** with low-priority vendors if cash is tight
-4. 💡 **Collect before you pay** — accelerate overdue receivables to fund payables
-"""
-    return output
+    synthesis_prompt = f"""You are the SmartFlow Supervisor — an intelligent orchestrator coordinating multiple financial AI agents.
 
+The user asked: "{query}"
+Query type: {query_type}
 
-def _synthesize_loan_advisory(results: Dict[str, Any]) -> str:
-    """Combine Credit + Payments data to advise on loans."""
-    credit_data = results.get("credit", {}).get("output", "")
-    payments_data = results.get("payments", {}).get("output", "")
+The following specialist agents have analyzed the data and provided their reports:
+{agent_outputs}
+
+YOUR TASK:
+1. Read all the agent reports above carefully
+2. Synthesize a unified, actionable recommendation that directly answers the user's question
+3. Highlight the most critical findings across agents
+4. Provide a clear "Top 3 Actions" list at the end
+5. Use emojis and markdown formatting for readability
+
+IMPORTANT:
+- Do NOT simply repeat each agent's output
+- Cross-reference data between agents (e.g., if runway is low AND there are overdue invoices, connect these)
+- Be specific with numbers (₹ amounts, days, percentages)
+- Keep the response concise but comprehensive
+- Start with "🧠 **Multi-Agent Analysis**" header
+
+Synthesize now:"""
     
-    output = """🧠 **Multi-Agent Decision: Loan Advisory**
-_CreditAdvisoryAgent + PaymentsOptimizer collaborated_
+    try:
+        llm = get_llm()
+        response = await llm.ainvoke(synthesis_prompt)
+        output = response.content if hasattr(response, 'content') else str(response)
+        return output
+    except Exception as e:
+        print(f"⚠️ LLM synthesis failed: {e}, using fallback")
+        return _fallback_synthesis(query_type, results)
 
-"""
-    output += "**Step 1 — CreditAdvisoryAgent** assessed your creditworthiness:\n"
-    for line in credit_data.split("\n"):
-        if any(w in line.lower() for w in ["score", "band", "runway", "eligible", "lender"]):
-            output += f"  {line.strip()}\n"
+
+def _fallback_synthesis(query_type: str, results: Dict[str, Any]) -> str:
+    """Fallback synthesis when LLM is unavailable — structured template-based output."""
+    output = "🧠 **Multi-Agent Analysis**\n_All agents collaborated on this analysis_\n\n"
     
-    output += "\n**Step 2 — PaymentsOptimizer** reviewed your obligations:\n"
-    for line in payments_data.split("\n"):
-        if any(w in line.lower() for w in ["total", "pending", "critical", "due"]):
-            output += f"  {line.strip()}\n"
-    
-    output += """
-**Step 3 — Joint Recommendation:**
-• If credit score > 700: You qualify for competitive rates. Invoice discounting (10-12% p.a.) is cheaper than term loans (14-18% p.a.)
-• If runway < 15 days: **Urgent** — consider emergency working capital facility
-• If runway > 30 days: Focus on improving collections before borrowing
-• 💡 Always compare cost of capital vs. expected return before borrowing
-"""
-    return output
-
-
-def _synthesize_full_health(results: Dict[str, Any]) -> str:
-    """Combine all agent data for a comprehensive health check."""
-    output = """🧠 **Multi-Agent Health Check**
-_All agents collaborated on this analysis_
-
-"""
     sections = {
         "collections": ("📋 Collections", "CollectionsBot"),
         "payments": ("💰 Payments", "PaymentsOptimizer"),
-        "gst": ("📊 GST", "GSTComplianceAgent"),
-        "credit": ("📈 Credit", "CreditAdvisoryAgent"),
     }
     
     for agent, (emoji, name) in sections.items():
@@ -300,7 +275,6 @@ _All agents collaborated on this analysis_
             output += f"  {kl}\n"
         output += "\n"
     
-    # Overall assessment
     output += """---
 **🎯 Top 3 Actions:**
 1. Focus on highest-impact item from collections (overdue receivables)
@@ -308,116 +282,6 @@ _All agents collaborated on this analysis_
 3. Stay GST compliant to avoid penalties and credit score impact
 """
     return output
-
-
-def _synthesize_affordability(results: Dict[str, Any]) -> str:
-    """Combine Payments + Credit data to check affordability."""
-    credit_data = results.get("credit", {}).get("output", "")
-    payments_data = results.get("payments", {}).get("output", "")
-    
-    output = """🧠 **Multi-Agent Decision: Affordability Check**
-_PaymentsOptimizer + CashFlowGuard collaborated_
-
-"""
-    output += "**Cash Position:**\n"
-    for line in credit_data.split("\n"):
-        if any(w in line.lower() for w in ["runway", "balance", "burn", "healthy", "critical"]):
-            output += f"  {line.strip()}\n"
-    
-    output += "\n**Pending Obligations:**\n"
-    for line in payments_data.split("\n"):
-        if any(w in line.lower() for w in ["total", "pending", "critical", "₹"]):
-            output += f"  {line.strip()}\n"
-            if len([l for l in payments_data.split("\n") if "₹" in l]) > 3:
-                break
-    
-    output += "\n**Verdict:** "
-    if "critical" in credit_data.lower() or "urgent" in credit_data.lower():
-        output += "⚠️ **Not safe** to pay all vendors right now. Prioritize critical payments only."
-    else:
-        output += "✅ Cash position looks manageable. Pay critical vendors and schedule the rest."
-    
-    return output
-
-
-def _synthesize_priority_decision(results: Dict[str, Any]) -> str:
-    """Recommend what to focus on based on all available data."""
-    output = """🧠 **Multi-Agent Decision: Today's Priorities**
-_CollectionsBot + PaymentsOptimizer + CashFlowGuard collaborated_
-
-"""
-    collections = results.get("collections", {}).get("output", "")
-    payments = results.get("payments", {}).get("output", "")
-    credit = results.get("credit", {}).get("output", "")
-    
-    priorities = []
-    
-    # Check collections urgency
-    if any(w in collections.lower() for w in ["overdue", "past due", "late"]):
-        priorities.append("🔴 **Collect overdue payments** — you have outstanding receivables")
-    
-    # Check payment urgency
-    if any(w in payments.lower() for w in ["critical", "due within", "urgent"]):
-        priorities.append("🟡 **Pay critical vendors** — some bills are due soon")
-    
-    # Check cash urgency
-    if any(w in credit.lower() for w in ["critical", "urgent", "< 15"]):
-        priorities.append("🔴 **Cash running low** — extend runway immediately")
-    elif "attention" in credit.lower():
-        priorities.append("🟡 **Monitor cash** — runway needs attention")
-    else:
-        priorities.append("✅ **Cash is healthy** — focus on growth")
-    
-    if not priorities:
-        priorities = ["✅ All systems look stable. Routine monitoring continues."]
-    
-    output += "**Today's Priority Stack:**\n"
-    for i, p in enumerate(priorities, 1):
-        output += f"{i}. {p}\n"
-    
-    output += "\n💡 **Tip:** Ask me specifics like \"who owes me money?\" or \"pending bills\" for details."
-    return output
-
-
-def _synthesize_risk_check(results: Dict[str, Any]) -> str:
-    """Check for risks across all areas."""
-    output = """🧠 **Multi-Agent Risk Scan**
-_All agents scanned for issues_
-
-"""
-    gst = results.get("gst", {}).get("output", "")
-    credit = results.get("credit", {}).get("output", "")
-    collections = results.get("collections", {}).get("output", "")
-    
-    risks = []
-    
-    if any(w in gst.lower() for w in ["pending", "overdue", "non-compliant", "blocked"]):
-        risks.append("⚠️ **GST**: Filing or compliance issue detected")
-    if any(w in credit.lower() for w in ["critical", "low", "< 15"]):
-        risks.append("🔴 **Cash**: Runway is critically low")
-    if any(w in collections.lower() for w in ["overdue", "high risk", "band c"]):
-        risks.append("⚠️ **Collections**: Overdue invoices / high-risk customers")
-    
-    if risks:
-        output += "**Found these concerns:**\n"
-        for r in risks:
-            output += f"• {r}\n"
-    else:
-        output += "✅ **No major risks detected** across all areas.\n"
-    
-    output += "\n💡 Ask me about any specific area for details."
-    return output
-
-
-# Synthesis router
-SYNTHESIS_MAP = {
-    "payment_priority": _synthesize_payment_priority,
-    "loan_advisory": _synthesize_loan_advisory,
-    "full_health": _synthesize_full_health,
-    "affordability": _synthesize_affordability,
-    "priority_decision": _synthesize_priority_decision,
-    "risk_check": _synthesize_risk_check,
-}
 
 
 # ======================================================================
@@ -430,15 +294,13 @@ class SupervisorAgent:
     1. Understands natural language queries
     2. Routes simple queries to the right agent
     3. Orchestrates multi-agent collaboration for complex questions
-    4. Synthesizes combined answers from multiple agents
+    4. Uses LLM to synthesize combined answers from multiple agents
     """
     
     def __init__(self):
         self.agent_runners = {
             "collections": run_collections_agent,
             "payments": run_payments_agent,
-            "gst": run_gst_agent,
-            "credit": run_credit_advisory_agent
         }
     
     async def run(self, entity_id: str, query: str) -> Dict[str, Any]:
@@ -448,11 +310,13 @@ class SupervisorAgent:
         
         # --- General/conversational ---
         if intent["type"] == "general":
+            output = _handle_general_query(query, intent.get("subtype", "unknown"))
+            self._log_interaction(entity_id, "SmartFlow Copilot", "GENERAL_QUERY", "INFO", "Responded to general query.", query)
             return {
                 "agent_used": "SmartFlow Copilot",
                 "intent": "general",
                 "success": True,
-                "output": _handle_general_query(query, intent.get("subtype", "unknown"))
+                "output": output
             }
         
         # --- Multi-agent collaboration ---
@@ -463,7 +327,7 @@ class SupervisorAgent:
         return await self._run_single_agent(entity_id, query, intent["agent"])
     
     async def _run_multi_agent(self, entity_id: str, query: str, intent: Dict) -> Dict[str, Any]:
-        """Orchestrate multiple agents and synthesize their outputs."""
+        """Orchestrate multiple agents and use LLM to synthesize their outputs."""
         agents_needed = intent["agents"]
         query_type = intent["subtype"]
         
@@ -481,18 +345,22 @@ class SupervisorAgent:
                 except Exception as e:
                     results[agent_name] = {"output": f"Error: {str(e)}", "success": False}
         
-        # Step 2: Synthesize combined answer
-        synthesizer = SYNTHESIS_MAP.get(query_type)
-        if synthesizer:
-            combined_output = synthesizer(results)
-        else:
-            # Fallback: concatenate
-            combined_output = "🧠 **Multi-Agent Analysis**\n\n"
-            for agent_name, data in results.items():
-                combined_output += f"**{agent_name}:** {data['output'][:200]}\n\n"
+        # Step 2: LLM-powered synthesis (upgraded from hardcoded templates)
+        combined_output = await _llm_synthesize(query, query_type, results)
+        
+        agent_used_str = " + ".join(agents_used)
+        
+        self._log_interaction(
+            entity_id, 
+            "SupervisorAgent", 
+            "MULTI_AGENT_SYNTHESIS", 
+            "INFO", 
+            f"Coordinated {len(agents_used)} agents ({agent_used_str}) to answer: '{query}'",
+            combined_output
+        )
         
         return {
-            "agent_used": " + ".join(agents_used),
+            "agent_used": agent_used_str,
             "intent": query_type,
             "success": True,
             "output": combined_output
@@ -514,6 +382,15 @@ class SupervisorAgent:
             result = await runner(entity_id, query)
             output = result.get("output", str(result)) if isinstance(result, dict) else str(result)
             
+            self._log_interaction(
+                entity_id, 
+                agent_name, 
+                "DIRECT_QUERY", 
+                "INFO", 
+                f"Handled direct query: '{query}'",
+                output
+            )
+            
             return {
                 "agent_used": agent_name,
                 "intent": agent_name,
@@ -530,9 +407,31 @@ class SupervisorAgent:
             }
     
     async def run_full_analysis(self, entity_id: str) -> Dict[str, Any]:
-        """Run all agents for comprehensive analysis."""
-        intent = {"agents": ["collections", "payments", "gst", "credit"], "subtype": "full_health"}
+        """Run core agents for comprehensive analysis."""
+        intent = {"agents": ["collections", "payments"], "subtype": "core_health"}
         return await self._run_multi_agent(entity_id, "full analysis", intent)
+
+    def _log_interaction(self, entity_id: str, agent_name: str, action: str, severity: str, summary: str, details: str):
+        """Log the interaction to the database for the activity feed."""
+        try:
+            db = SessionLocal()
+            log = AuditLog(
+                agent_name=agent_name,
+                event_type="AI_INTERACTION",
+                action=action,
+                severity=severity,
+                entity_id=entity_id,
+                details=json.dumps({"query_or_output": details}),
+                reasoning=summary,
+                trace_id=f"trace-{uuid.uuid4().hex[:8]}"
+            )
+            db.add(log)
+            db.commit()
+        except Exception as e:
+            print(f"Failed to log interaction: {e}")
+        finally:
+            if 'db' in locals():
+                db.close()
 
 
 # Convenience functions

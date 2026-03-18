@@ -65,7 +65,10 @@ source venv/bin/activate  # or venv\Scripts\activate
 pip install -r requirements.txt
 
 # Configure Database
-# Edit .env or config.py to point to your PostgreSQL instance
+# Set DATABASE_URL in .env (recommended) or edit backend/app/config.py.
+# Example (PostgreSQL):
+# DATABASE_URL=postgresql+psycopg2://postgres:<password>@<host>:5432/smartflow
+# If your password contains '@', URL-encode it as '%40'.
 
 # Run Server
 uvicorn app.main:app --reload

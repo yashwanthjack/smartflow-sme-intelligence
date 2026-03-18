@@ -16,6 +16,7 @@ langchain
 langchain-community
 langchain-openai
 langchain-google-genai
+langchain-groq
 duckduckgo-search
 shap
 huggingface_hub

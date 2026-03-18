@@ -69,7 +69,6 @@ def get_overdue_invoices(entity_id: str) -> str:
                     total += inv.balance_due
                 
                 result += f"\n**Total Overdue**: ₹{total:,.0f}"
-                result += f"\n**Total Overdue**: ₹{total:,.0f}"
                 return result
         except Exception as e:
             return f"Error fetching overdue invoices: {str(e)}"
@@ -277,7 +276,6 @@ def get_pending_payables(entity_id: str) -> str:
                     result += f"- **{cp_name}**: ₹{inv.balance_due:,.0f} due in {days_until} days [{priority}]\n"
                     total += inv.balance_due
                 
-                result += f"\n**Total Pending**: ₹{total:,.0f}"
                 result += f"\n**Total Pending**: ₹{total:,.0f}"
                 return result
             else:

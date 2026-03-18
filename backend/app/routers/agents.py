@@ -184,6 +184,27 @@ async def query_supervisor(
         )
 
 
+# Temporary test endpoint without authentication for development
+@router.post("/test-query/{entity_id}")
+async def test_query_supervisor(
+    entity_id: str,
+    request: QueryRequest
+):
+    """
+    TEST ENDPOINT: Unified query without authentication (for development only)
+    """
+    try:
+        result = await run_supervisor(entity_id, request.query)
+        return SupervisorResponse(**result)
+    except Exception as e:
+        return SupervisorResponse(
+            agent_used="supervisor",
+            intent="error",
+            success=False,
+            error=str(e)
+        )
+
+
 @router.post("/full-analysis/{entity_id}")
 async def full_analysis(
     entity_id: str,

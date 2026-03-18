@@ -1,0 +1,17 @@
+🧠 **Multi-Agent Analysis**
+
+All specialist agents agree: **the system currently lacks the transactional data needed to identify who paid the highest amount.**  
+
+- **Collections Agent** – No overdue invoices, but paid‑invoice details are missing.  
+- **Payments Agent** – Ledger contains zero recorded transactions, so no spending or income history to analyze.  
+- **GST Agent** – No GST/purchase data uploaded; therefore no vendor‑wise payment totals.  
+- **Credit Agent** – Cash runway is critically low at **1 day** (₹4,50,000 balance) and net 30‑day cash flow projection is ₹1,809,184, underscoring the urgency to know your biggest payers.
+
+**Critical Insight:** Without recorded payments, we cannot rank customers or vendors. The low runway signals that quickly identifying and collecting from your largest payers could immediately improve liquidity.
+
+### 🚦 Top 3 Actions
+1. **Upload Payment/Ledger Data** – Import your paid invoice register, bank statements, or accounting export (customer name, amount paid, date) into SmartFlow so the Payments and Collections agents can analyze it.  
+2. **Run a Payment Ranking Analysis** – Once data is loaded, ask the Payments agent to `analyze_ledger_spending` (or Collections agent to sort paid invoices) to produce a clear “Top Payer” list with amounts and percentages.  
+3. **Accelerate Collections on Top Debtors** – Use the resulting ranking to prioritize follow‑up on the highest‑value outstanding invoices, aiming to convert them into cash and extend the cash runway beyond the current 1‑day buffer.  
+
+*After completing these steps, you’ll have a definitive answer to “Who paid the highest?” and a concrete path to strengthen your cash position.* 💡

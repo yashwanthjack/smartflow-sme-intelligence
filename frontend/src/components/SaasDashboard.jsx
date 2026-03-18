@@ -9,7 +9,7 @@ import ForecastChart from './ForecastChart'
 import AgentStatusCard from './AgentStatusCard'
 import TaxComplianceCard from './TaxComplianceCard'
 
-export default function SaasDashboard({ openCopilot }) {
+export default function SaasDashboard({ openCopilot, accountCategory = 'BUSINESS', entityId }) {
     const { user, token } = useAuth()
     const [metrics, setMetrics] = useState(null)
     const [volumeData, setVolumeData] = useState(null)
@@ -21,12 +21,11 @@ export default function SaasDashboard({ openCopilot }) {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        if (!user || !token) return
+        if (!user || !token || !entityId) return
 
         const fetchData = async () => {
             try {
                 const headers = { 'Authorization': `Bearer ${token}` }
-                const entityId = user.entity_id
 
                 // Parallel fetch
                 const [resSummary, resVolume, resWaterfall, resIncome, resInsight, resGst, resCust] = await Promise.all([
@@ -54,7 +53,7 @@ export default function SaasDashboard({ openCopilot }) {
             }
         }
         fetchData()
-    }, [user, token])
+    }, [user, token, entityId])
 
     const handleViewAnalysis = () => {
         if (openCopilot) {
@@ -70,6 +69,17 @@ export default function SaasDashboard({ openCopilot }) {
         </div>
     )
 
+    if (!entityId) {
+        return (
+            <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>No organization selected</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Select an organization from the top-right dropdown to view financial metrics.
+                </div>
+            </div>
+        )
+    }
+
     return (
         <div className="dashboard">
             <div className="main-content">
@@ -79,7 +89,7 @@ export default function SaasDashboard({ openCopilot }) {
                         <p className="header-subtitle">Welcome back, {user?.full_name}</p>
                     </div>
                     <div className="header-actions">
-                        <HealthPulse entityId={user?.entity_id} token={token} />
+                        <HealthPulse entityId={entityId} token={token} />
                         <button className="btn btn-primary" onClick={() => window.print()}>
                             Generate Report
                         </button>
@@ -119,17 +129,19 @@ export default function SaasDashboard({ openCopilot }) {
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
 
                         {/* Forecast Chart (New) */}
-                        <ForecastChart entityId={user?.entity_id} />
+                        <ForecastChart entityId={entityId} />
 
-                        {/* Credit Score & Volume Row/Grid */}
-                        <div className="content-grid-equal">
-                            <ScoreWrapper entityId={user?.entity_id} token={token} />
-                            <GrossVolumeCard
-                                totalVolume={volumeData?.totalVolume || 0}
-                                change={volumeData?.change || 0}
-                                breakdown={volumeData?.breakdown || []}
-                            />
-                        </div>
+                        {/* SME Only: Credit Score & Volume Row/Grid */}
+                        {accountCategory !== 'PERSONAL' && (
+                            <div className="content-grid-equal">
+                                <ScoreWrapper entityId={entityId} token={token} />
+                                <GrossVolumeCard
+                                    totalVolume={volumeData?.totalVolume || 0}
+                                    change={volumeData?.change || 0}
+                                    breakdown={volumeData?.breakdown || []}
+                                />
+                            </div>
+                        )}
 
                         {/* Income Tracker (Restored) */}
                         <IncomeTrackerCard
@@ -139,18 +151,20 @@ export default function SaasDashboard({ openCopilot }) {
 
                         {/* Waterfall & Tax & Customers */}
                         <div className="content-grid-equal">
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                <TaxComplianceCard data={gstData} openCopilot={openCopilot} />
-                                <CustomersCard
-                                    total={customerData?.total_customers || 0}
-                                    change={customerData?.new_customers || 0}
-                                />
-                            </div>
+                            {accountCategory !== 'PERSONAL' ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+                                    <TaxComplianceCard data={gstData} openCopilot={openCopilot} />
+                                    <CustomersCard
+                                        total={customerData?.total_customers || 0}
+                                        change={customerData?.new_customers || 0}
+                                    />
+                                </div>
+                            ) : null}
                             <PaymentsWaterfallChart data={waterfallData} />
                         </div>
 
                         {/* Transactions Table */}
-                        <TransactionsTable entityId={user?.entity_id} />
+                        <TransactionsTable entityId={entityId} />
                     </div>
 
                     {/* Right Column (Activity & Insights) */}
@@ -158,7 +172,7 @@ export default function SaasDashboard({ openCopilot }) {
                         {/* Agent Workforce (New) */}
                         <AgentStatusCard />
 
-                        <ActivityFeed entityId={user?.entity_id} />
+                        <ActivityFeed entityId={entityId} />
 
                         <div className="insight-card">
                             <div className="insight-badge">

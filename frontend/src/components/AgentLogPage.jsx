@@ -12,16 +12,16 @@ const AGENT_COLORS = {
     'SupervisorAgent': '#ec4899',
 }
 
-export default function AgentLogPage() {
+export default function AgentLogPage({ entityId }) {
     const { user, token } = useAuth()
     const [logs, setLogs] = useState([])
     const [loading, setLoading] = useState(true)
     const [viewMode, setViewMode] = useState('conversations') // 'conversations' | 'timeline'
 
     const fetchLogs = async () => {
-        if (!user || !token) return
+        if (!user || !token || !entityId) return
         try {
-            const res = await fetch(`/api/audit/${user.entity_id}`, {
+            const res = await fetch(`/api/audit/${entityId}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             })
 
@@ -45,7 +45,18 @@ export default function AgentLogPage() {
         fetchLogs()
         const interval = setInterval(fetchLogs, 5000)
         return () => clearInterval(interval)
-    }, [user, token])
+    }, [user, token, entityId])
+
+    if (!entityId) {
+        return (
+            <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+                <div style={{ fontWeight: 700, marginBottom: 8 }}>No organization selected</div>
+                <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    Select an organization from the top-right dropdown to view agent activity.
+                </div>
+            </div>
+        )
+    }
 
     const getSeverityColor = (sev) => {
         switch (sev) {
