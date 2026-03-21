@@ -11,6 +11,7 @@ from app.agents.collections_agent import run_collections_agent
 from app.agents.payments_agent import run_payments_agent
 from app.agents.gst_agent import run_gst_agent
 from app.agents.credit_advisory_agent import run_credit_advisory_agent
+from app.agents.decision_advisor_agent import run_decision_advisor_agent
 from app.db.database import SessionLocal
 from app.models.audit_log import AuditLog
 
@@ -61,6 +62,13 @@ GENERAL_PATTERNS = [
 
 # Complex queries requiring MULTIPLE agents to collaborate
 MULTI_AGENT_PATTERNS = [
+    # "from whom i got the highest" → Direct answer from ledger
+    {
+        "patterns": [r"from whom.*(got|received).*highest", r"who.*gave.*highest", r"highest.*(received|got).*from",
+                     r"biggest.*payment.*from", r"largest.*income.*from"],
+        "agents": [],  # Special case - direct tool call
+        "type": "highest_received"
+    },
     # "who should I pay first" → Payments + CashFlow + Risk
     {
         "patterns": [r"pay first", r"pay whom", r"whom.*(to|should).*pay", r"who.*(to|should|need).*pay",
@@ -101,8 +109,15 @@ MULTI_AGENT_PATTERNS = [
     {
         "patterns": [r"(compliant|compliance).*(status|check|ok)", r"any.*(risk|issue|problem|pending)",
                      r"what.*(wrong|issue|problem|pending|concern)"],
-        "agents": ["collections", "payments"],
+        "agents": ["collections", "payments", "gst"],
         "type": "risk_check"
+    },
+    # "can I hire / strategic decisions" → Decision Advisor
+    {
+        "patterns": [r"can i.*(hire|invest|buy|spend|afford)", r"should i.*(hire|invest|buy|spend|afford)",
+                     r"impact.*of.*(hiring|investing|expense)", r"strategic.*advice"],
+        "agents": ["decision_advisor", "credit"],
+        "type": "strategic_decision"
     },
 ]
 
@@ -122,7 +137,13 @@ def classify_intent(query: str) -> Dict[str, Any]:
     for pattern, intent_type in GENERAL_PATTERNS:
         if re.search(pattern, query_lower):
             return {"type": "general", "subtype": intent_type}
-    
+
+    # Step 1b: Direct factual queries (single-sentence response)
+    if re.search(r"(highest|biggest|largest).*(transaction|txn|payment)", query_lower):
+        if "received" in query_lower or "got" in query_lower or "income" in query_lower:
+             return {"type": "multi", "agents": ["payments"], "subtype": "highest_received"}
+        return {"type": "multi", "agents": ["payments"], "subtype": "highest_transaction"}
+
     # Step 2: Check if a specific multi-agent synthesis pattern matches
     for mp in MULTI_AGENT_PATTERNS:
         for pattern in mp["patterns"]:
@@ -234,6 +255,7 @@ YOUR TASK:
 IMPORTANT:
 - Do NOT simply repeat each agent's output
 - Cross-reference data between agents (e.g., if runway is low AND there are overdue invoices, connect these)
+- If the Decision Advisor provided a simulation, highlight the old vs new runway
 - Be specific with numbers (₹ amounts, days, percentages)
 - Keep the response concise but comprehensive
 - Start with "🧠 **Multi-Agent Analysis**" header
@@ -301,6 +323,9 @@ class SupervisorAgent:
         self.agent_runners = {
             "collections": run_collections_agent,
             "payments": run_payments_agent,
+            "gst": run_gst_agent,
+            "credit": run_credit_advisory_agent,
+            "decision_advisor": run_decision_advisor_agent,
         }
     
     async def run(self, entity_id: str, query: str) -> Dict[str, Any]:
@@ -319,6 +344,29 @@ class SupervisorAgent:
                 "output": output
             }
         
+        # --- Special direct queries ---
+        if intent["type"] == "multi" and intent["subtype"] == "highest_received":
+            from app.agents.tools import get_highest_received_payment
+            output = get_highest_received_payment.invoke({"entity_id": entity_id})
+            self._log_interaction(entity_id, "SupervisorAgent", "DIRECT_TOOL", "INFO", f"Answered direct query: '{query}'", output)
+            return {
+                "agent_used": "Direct Tool",
+                "intent": "highest_received",
+                "success": True,
+                "output": output
+            }
+
+        if intent["type"] == "multi" and intent["subtype"] == "highest_transaction":
+            from app.agents.tools import get_highest_transaction
+            output = get_highest_transaction.invoke({"entity_id": entity_id})
+            self._log_interaction(entity_id, "SupervisorAgent", "DIRECT_TOOL", "INFO", f"Answered direct query: '{query}'", output)
+            return {
+                "agent_used": "Direct Tool",
+                "intent": "highest_transaction",
+                "success": True,
+                "output": output
+            }
+
         # --- Multi-agent collaboration ---
         if intent["type"] == "multi":
             return await self._run_multi_agent(entity_id, query, intent)
@@ -436,8 +484,17 @@ class SupervisorAgent:
 
 # Convenience functions
 async def run_supervisor(entity_id: str, query: str) -> Dict[str, Any]:
-    supervisor = SupervisorAgent()
-    return await supervisor.run(entity_id, query)
+    from app.agents.tools import set_db_session
+    from app.db.database import SessionLocal
+    
+    db = SessionLocal()
+    set_db_session(db)
+    
+    try:
+        supervisor = SupervisorAgent()
+        return await supervisor.run(entity_id, query)
+    finally:
+        db.close()
 
 async def run_full_analysis(entity_id: str) -> Dict[str, Any]:
     supervisor = SupervisorAgent()

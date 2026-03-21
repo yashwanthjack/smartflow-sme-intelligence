@@ -41,5 +41,4 @@ def fix_passwords():
     print("Password fixes applied.")
 
 if __name__ == "__main__":
-    fix_passwords()</content>
-<parameter name="filePath">d:\1.Education\smartflow-sme-intelligence\backend\fix_passwords.py
+    fix_passwords()

@@ -5,6 +5,7 @@ from langchain.tools import tool
 from typing import Optional
 from datetime import date, timedelta
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from contextvars import ContextVar
 
@@ -400,9 +401,87 @@ def analyze_ledger_spending(entity_id: str) -> str:
         return f"Error analyzing ledger: {str(e)}"
 
 
-# ============================================================================
-# GST COMPLIANCE TOOLS
-# ============================================================================
+@tool
+def get_highest_transaction(entity_id: str) -> str:
+    """Get the single highest-value transaction (in absolute terms) in the ledger."""
+    db = get_db_session()
+    
+    if db is not None:
+        try:
+            from app.models.ledger_entry import LedgerEntry
+            from app.models.counterparty import Counterparty
+
+            highest = (
+                db.query(LedgerEntry)
+                .filter(LedgerEntry.entity_id == entity_id)
+                .order_by(func.abs(LedgerEntry.amount).desc())
+                .first()
+            )
+
+            if highest:
+                cp_name = "Unknown"
+                if highest.counterparty_id:
+                    cp = db.query(Counterparty).filter(Counterparty.id == highest.counterparty_id).first()
+                    if cp:
+                        cp_name = cp.name
+
+                direction = "received" if highest.amount > 0 else "paid"
+                amt = abs(highest.amount)
+                date_str = highest.ledger_date
+                desc = highest.description or "(no description)"
+
+                return f"Highest transaction was ₹{amt:,.0f} {direction} on {date_str} ({desc})."
+
+            return "No transactions found in the ledger."
+
+        except Exception as e:
+            return f"Error fetching transaction data: {str(e)}"
+
+    return "Database connection unavailable."
+
+
+@tool
+def get_highest_received_payment(entity_id: str) -> str:
+    """Get the highest payment received and from which counterparty.
+    
+    Args:
+        entity_id: The unique identifier of the business entity
+        
+    Returns:
+        Information about the highest received payment
+    """
+    db = get_db_session()
+    
+    if db is not None:
+        try:
+            from app.models.ledger_entry import LedgerEntry
+            from app.models.counterparty import Counterparty
+            
+            # Find the highest positive amount (received payment)
+            highest_payment = (
+                db.query(LedgerEntry)
+                .filter(LedgerEntry.entity_id == entity_id)
+                .filter(LedgerEntry.amount > 0)
+                .order_by(LedgerEntry.amount.desc())
+                .first()
+            )
+            
+            if highest_payment:
+                # Get counterparty name if available
+                cp_name = "Unknown"
+                if highest_payment.counterparty_id:
+                    cp = db.query(Counterparty).filter(Counterparty.id == highest_payment.counterparty_id).first()
+                    if cp:
+                        cp_name = cp.name
+                
+                return f"💰 **Highest Received Payment**: ₹{highest_payment.amount:,.0f} from **{cp_name}** on {highest_payment.ledger_date} ({highest_payment.description})"
+            else:
+                return "No received payments found in the ledger."
+                
+        except Exception as e:
+            return f"Error fetching payment data: {str(e)}"
+    
+    return "Database connection unavailable."
 
 @tool
 def check_gst_compliance(entity_id: str) -> dict:

@@ -445,7 +445,7 @@ export function IncomeTrackerCard({ weeklyData, changePercent }) {
                         )}
                         <div style={{
                             width: 8,
-                            height: `${Math.max((item.value / (maxValue || 1)) * 100, 8)}px`,
+                            height: `${Math.max((item.value / (maxValue || 1)) * 100, 4)}px`,
                             background: item.highlight ? 'var(--text-primary)' : '#e5e7eb',
                             borderRadius: 4
                         }} />

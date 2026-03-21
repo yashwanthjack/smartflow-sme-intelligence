@@ -149,20 +149,6 @@ export default function SaasDashboard({ openCopilot, accountCategory = 'BUSINESS
                             changePercent={incomeData?.changePercent}
                         />
 
-                        {/* Waterfall & Tax & Customers */}
-                        <div className="content-grid-equal">
-                            {accountCategory !== 'PERSONAL' ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
-                                    <TaxComplianceCard data={gstData} openCopilot={openCopilot} />
-                                    <CustomersCard
-                                        total={customerData?.total_customers || 0}
-                                        change={customerData?.new_customers || 0}
-                                    />
-                                </div>
-                            ) : null}
-                            <PaymentsWaterfallChart data={waterfallData} />
-                        </div>
-
                         {/* Transactions Table */}
                         <TransactionsTable entityId={entityId} />
                     </div>

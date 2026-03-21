@@ -142,3 +142,9 @@ class DecisionAdvisorAgent(BaseAgent):
     async def run(self, task: str) -> Dict[str, Any]:
         """Execute the decision advisor using autonomous tool calling."""
         return await self.run_with_tools(task)
+
+
+async def run_decision_advisor_agent(entity_id: str, task: str = None) -> Dict[str, Any]:
+    """Convenience function to run the decision advisor agent."""
+    agent = DecisionAdvisorAgent(entity_id)
+    return await agent.run(task or "Provide a strategic financial assessment and recommendations")
