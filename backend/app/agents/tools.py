@@ -402,6 +402,44 @@ def analyze_ledger_spending(entity_id: str) -> str:
 
 
 @tool
+def query_ledger_entries(entity_id: str, category: Optional[str] = None, limit: int = 5) -> str:
+    """Search for specific ledger entries by category or just list recent ones.
+    
+    Args:
+        entity_id: The unique identifier of the business entity
+        category: Filter by category (revenue, expense, salary, gst, etc.)
+        limit: Max results to return
+    """
+    db = get_db_session()
+    if not db: return "Database connection unavailable."
+    
+    try:
+        from app.models.ledger_entry import LedgerEntry
+        from app.models.counterparty import Counterparty
+        
+        query = db.query(LedgerEntry).filter(LedgerEntry.entity_id == entity_id)
+        if category:
+            query = query.filter(LedgerEntry.category == category.lower())
+        
+        entries = query.order_by(LedgerEntry.ledger_date.desc()).limit(limit).all()
+        
+        if not entries:
+            return f"No ledger entries found for category '{category}'." if category else "No ledger entries found."
+            
+        result = "📒 **Ledger Query Results**\n\n"
+        for entry in entries:
+            cp_name = "Internal"
+            if entry.counterparty_id:
+                cp = db.query(Counterparty).filter(Counterparty.id == entry.counterparty_id).first()
+                if cp: cp_name = cp.name
+            
+            result += f"- {entry.ledger_date}: ₹{entry.amount:,.0f} | {entry.category} | {entry.description} (Partner: {cp_name})\n"
+            
+        return result
+    except Exception as e:
+        return f"Error querying ledger: {str(e)}"
+
+@tool
 def get_highest_transaction(entity_id: str) -> str:
     """Get the single highest-value transaction (in absolute terms) in the ledger."""
     db = get_db_session()
@@ -430,7 +468,7 @@ def get_highest_transaction(entity_id: str) -> str:
                 date_str = highest.ledger_date
                 desc = highest.description or "(no description)"
 
-                return f"Highest transaction was ₹{amt:,.0f} {direction} on {date_str} ({desc})."
+                return f"Highest transaction was ₹{amt:,.0f} {direction} on {date_str} ({desc}). Partner: {cp_name}."
 
             return "No transactions found in the ledger."
 

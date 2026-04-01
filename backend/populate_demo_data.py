@@ -9,7 +9,6 @@ import sys
 import uuid
 from datetime import datetime, date, timedelta
 from typing import Dict, List
-import hashlib
 
 # Setup path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -34,18 +33,20 @@ from app.db.database import Base
 from app.config import settings
 
 # Hash password function
+from app.auth import get_password_hash
+
 def hash_password(password: str) -> str:
-    """Simple password hashing"""
-    return hashlib.sha256(password.encode()).hexdigest()
+    """Password hashing using bcrypt (consistent with app.auth)"""
+    return get_password_hash(password)
 
 def create_demo_user(session: Session) -> User:
     """Create demo user account"""
-    print("Creating user: yash@gmail.com...")
+    print("Creating user: 9047889889@gmail.com...")
     
     user = User(
         id=str(uuid.uuid4()),
-        email="yash@gmail.com",
-        hashed_password=hash_password("yash@1234"),
+        email="9047889889@gmail.com",
+        hashed_password=hash_password("9047889889"),
         full_name="Yash Sharma",
         role=UserRole.ADMIN,
         is_active=True
@@ -76,6 +77,12 @@ def create_demo_entity(session: Session, user: User) -> Entity:
     session.add(entity)
     session.commit()
     print(f"✓ Entity created: {entity.name} (ID: {entity.id})")
+    
+    # Link user to entity
+    user.entity_id = entity.id
+    session.add(user)
+    session.commit()
+    
     return entity
 
 def create_counterparties(session: Session, entity: Entity) -> List[Counterparty]:
@@ -443,7 +450,9 @@ def main():
     engine = create_engine(settings.DATABASE_URL, echo=False)
     
     # Create tables
-    print("\nCreating database tables...")
+    print("\nDropping existing database tables (if any)...")
+    Base.metadata.drop_all(bind=engine)
+    print("Creating database tables...")
     Base.metadata.create_all(bind=engine)
     print("✓ Tables created")
     
@@ -452,23 +461,9 @@ def main():
     session = Session()
     
     try:
-        # Check if user already exists
-        existing_user = session.query(User).filter(User.email == "yash@gmail.com").first()
-        if existing_user:
-            print("\n⚠ User yash@gmail.com already exists!")
-            print("Clearing existing data...")
-            # Delete existing data
-            session.query(CashFlow).delete()
-            session.query(Invoice).delete()
-            session.query(Account).delete()
-            session.query(Counterparty).delete()
-            session.query(Entity).delete()
-            session.query(User).delete()
-            session.commit()
-            print("✓ Cleared existing data")
-        
         # Create user
         user = create_demo_user(session)
+
         
         # Create entity
         entity = create_demo_entity(session, user)
@@ -478,6 +473,15 @@ def main():
         
         # Create bank accounts
         accounts = create_bank_accounts(session, entity)
+        
+        # Create case for cashflows to link against
+        case = Case(
+            id=entity.id,
+            sme_name=entity.name,
+            status="ingested"
+        )
+        session.add(case)
+        session.commit()
         
         # Create invoices
         invoices = create_invoices(session, entity, counterparties)
@@ -489,8 +493,8 @@ def main():
         print("Demo Data Population Complete!")
         print("=" * 60)
         print("\nLogin Credentials:")
-        print(f"  Email: yash@gmail.com")
-        print(f"  Password: yash@1234")
+        print("  Email: 9047889889@gmail.com")
+        print("  Password: 9047889889")
         print("\nDatabase Summary:")
         print(f"  Users: {session.query(User).count()}")
         print(f"  Entities: {session.query(Entity).count()}")

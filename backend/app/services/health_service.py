@@ -54,7 +54,11 @@ class HealthService:
         # ─── 2. Credit Score Component (20%) ─────────────────────────
         credit_data = self.scoring_service.calculate_score(entity_id)
         features = credit_data.get('features', {})
-        credit_score = credit_data.get('score', 600)
+        # If score is None (no data), default to 600
+        credit_score = credit_data.get('score')
+        if credit_score is None:
+            credit_score = 600
+            
         credit_component = (credit_score - 300) / 600 * 100  # Normalize 300-900 to 0-100
         
         # ─── 3. DSO Score (25%) ──────────────────────────────────────

@@ -100,60 +100,58 @@ class ForecastingService:
             return self._simple_forecast(df, days)
     
     def _prophet_forecast(self, df: pd.DataFrame, days: int) -> Dict[str, Any]:
-        """Generate forecast using Facebook Prophet."""
-        # Initialize Prophet with weekly and monthly seasonality
+        """Generate forecast using Facebook Prophet, including historical data."""
+        # Initialize Prophet
         model = Prophet(
             daily_seasonality=False,
             weekly_seasonality=True,
             yearly_seasonality=False,
-            changepoint_prior_scale=0.05  # Conservative change detection
+            changepoint_prior_scale=0.05
         )
         
-        # Add monthly seasonality for salary/rent cycles
-        model.add_seasonality(
-            name='monthly',
-            period=30.5,
-            fourier_order=5
-        )
-        
-        # Fit model
+        model.add_seasonality(name='monthly', period=30.5, fourier_order=5)
         model.fit(df)
         
-        # Create future dataframe
-        future = model.make_future_dataframe(periods=days)
+        future = model.make_future_dataframe(periods=days, freq='D')
         forecast = model.predict(future)
         
-        # Extract forecast for future dates only
-        future_forecast = forecast.tail(days)[['ds', 'yhat', 'yhat_lower', 'yhat_upper']]
+        # Merge actual 'y' values back into the forecast for visualization
+        # Rename 'y' to 'actual' for the response
+        df_actual = df[['ds', 'y']].rename(columns={'y': 'actual'})
+        full_result = forecast.merge(df_actual, on='ds', how='left')
         
-        # Calculate summary stats
-        forecasted_values = future_forecast['yhat'].values
+        # Determine how much history to return (e.g., same as forecast days)
+        # We'll return the last 2*days data points to show context
+        result_df = full_result.tail(days * 2) if len(full_result) > days * 2 else full_result
+        
+        forecasted_values = forecast.tail(days)['yhat'].values
         
         return {
             'method': 'prophet',
-            'entity_id': df.get('entity_id', 'unknown'),
+            'entity_id': 'unknown',
             'forecast_days': days,
             'daily_forecast': [
                 {
                     'date': row['ds'].strftime('%Y-%m-%d'),
+                    'actual': round(row['actual'], 2) if not pd.isna(row['actual']) else None,
                     'predicted': round(row['yhat'], 2),
                     'lower_bound': round(row['yhat_lower'], 2),
                     'upper_bound': round(row['yhat_upper'], 2)
                 }
-                for _, row in future_forecast.iterrows()
+                for _, row in result_df.iterrows()
             ],
             'summary': {
                 'total_predicted_inflow': round(sum(v for v in forecasted_values if v > 0), 2),
                 'total_predicted_outflow': round(sum(v for v in forecasted_values if v < 0), 2),
                 'net_cash_flow': round(sum(forecasted_values), 2),
-                'min_balance_day': int(forecasted_values.argmin()) + 1,
-                'min_balance_amount': round(forecasted_values.min(), 2)
+                'min_balance_day': int(forecasted_values.argmin()) + 1 if len(forecasted_values) > 0 else 0,
+                'min_balance_amount': round(forecasted_values.min(), 2) if len(forecasted_values) > 0 else 0
             },
             'alerts': self._generate_alerts(forecasted_values)
         }
     
     def _simple_forecast(self, df: pd.DataFrame, days: int) -> Dict[str, Any]:
-        """Fallback: Simple moving average forecast."""
+        """Fallback: Simple moving average forecast, including historical data."""
         # Calculate moving averages
         ma_7 = df['y'].tail(7).mean()
         ma_30 = df['y'].tail(30).mean() if len(df) >= 30 else ma_7
@@ -165,15 +163,31 @@ class ForecastingService:
         # Add some noise for realistic bounds
         std = df['y'].tail(30).std() if len(df) >= 30 else df['y'].std()
         
-        daily_forecasts = []
+        # Historical Data
+        historical_forecasts = [
+            {
+                'date': row['ds'].strftime('%Y-%m-%d'),
+                'actual': round(row['y'], 2),
+                'predicted': round(row['y'], 2), # Placeholder for history
+                'lower_bound': round(row['y'], 2),
+                'upper_bound': round(row['y'], 2)
+            }
+            for _, row in df.tail(days).iterrows()
+        ]
+        
+        # Future Forecast
+        future_forecasts = []
         for i in range(days):
             forecast_date = date.today() + timedelta(days=i+1)
-            daily_forecasts.append({
+            future_forecasts.append({
                 'date': forecast_date.strftime('%Y-%m-%d'),
+                'actual': None,
                 'predicted': round(base_forecast, 2),
                 'lower_bound': round(base_forecast - 1.5 * std, 2),
                 'upper_bound': round(base_forecast + 1.5 * std, 2)
             })
+        
+        daily_forecasts = historical_forecasts + future_forecasts
         
         return {
             'method': 'moving_average',

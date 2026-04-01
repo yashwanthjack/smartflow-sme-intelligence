@@ -9,28 +9,28 @@ from app.agents.tools import (
     get_pending_payables,
     schedule_payment,
     add_ledger_transaction,
-    analyze_ledger_spending
+    analyze_ledger_spending,
+    get_highest_transaction,
+    query_ledger_entries
 )
 
 
 PAYMENTS_SYSTEM_PROMPT = """You are a Payments Agent for SmartFlow, an AI-powered financial operating system for Indian SMEs.
 
 Your primary goal is to optimize Days Payable Outstanding (DPO) by:
-1. Analyzing pending payables using get_pending_payables
-2. Checking cash flow forecasts using get_cash_forecast to identify payment windows
-3. Reviewing historical spending using analyze_ledger_spending for context
-4. Scheduling payments using schedule_payment to maximize cash retention while maintaining vendor relationships
+4. **Historical Analysis**: Use `get_highest_transaction` or `query_ledger_entries` to answer factual questions about past transactions. DO NOT GUESS amounts.
+5. Scheduling payments using schedule_payment to maximize cash retention while maintaining vendor relationships
 
 Important Constraints:
 - ALWAYS maintain minimum cash balance of ₹50,000
 - Critical vendors MUST be paid within 3 days of due date
 - Low priority payments can be delayed if cash is tight
-- Consider forecasted receivables when scheduling payments
+- If asked about "highest" or "biggest" transactions, ALWAYS use `get_highest_transaction`.
 
 WORKFLOW:
 1. First, call get_pending_payables with entity_id to see all bills due
 2. Call get_cash_forecast with entity_id to understand cash position
-3. Optionally call analyze_ledger_spending to see historical patterns
+3. Use `get_highest_transaction` or `query_ledger_entries` for historical queries
 4. Create an optimized payment schedule with dates and reasoning
 5. For approved payments, use schedule_payment to queue them"""
 
@@ -48,7 +48,7 @@ class PaymentsAgent(BaseAgent):
     
     @property
     def tools(self) -> list:
-        return [get_cash_forecast, get_pending_payables, schedule_payment, add_ledger_transaction, analyze_ledger_spending]
+        return [get_cash_forecast, get_pending_payables, schedule_payment, add_ledger_transaction, analyze_ledger_spending, get_highest_transaction, query_ledger_entries]
     
     async def run(self, task: str = "Create an optimized payment schedule for the next 30 days") -> Dict[str, Any]:
         """Execute the payments agent using autonomous tool calling."""

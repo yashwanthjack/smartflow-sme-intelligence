@@ -762,8 +762,13 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
 
             if (response.ok) {
                 const data = await response.json()
-                const output = data.output || data.fallback_output || 'Request processed.'
-                setMessages(prev => [...prev, { role: 'agent', content: output }])
+                if (data.success) {
+                    const output = data.output || data.fallback_output || 'Request processed.'
+                    const reports = data.reports || []
+                    setMessages(prev => [...prev, { role: 'agent', content: output, reports }])
+                } else {
+                    setMessages(prev => [...prev, { role: 'agent', content: data.error || 'Request failed.' }])
+                }
             } else {
                 setMessages(prev => [...prev, { role: 'agent', content: 'Error processing request.' }])
             }
@@ -834,11 +839,36 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
 
             <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {messages.map((msg, idx) => (
-                    <div key={idx} className={`chat-message ${msg.role}`} style={{ fontSize: 13 }}>
-                        {msg.content}
+                    <div key={idx} className={`chat-message ${msg.role}`} style={{ fontSize: 13, borderBottom: '1px solid var(--glass-border)', paddingBottom: 12 }}>
+                        {msg.reports && msg.reports.length > 0 && (
+                            <div style={{ marginBottom: 10 }}>
+                                {msg.reports.map((report, rIdx) => (
+                                    <details key={rIdx} style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+                                        <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                                            🛠️ Agent Insight {rIdx + 1}
+                                        </summary>
+                                        <div style={{ 
+                                            padding: 8, 
+                                            background: 'rgba(255,255,255,0.03)', 
+                                            borderRadius: 4, 
+                                            marginTop: 4,
+                                            whiteSpace: 'pre-wrap'
+                                        }}>
+                                            {report}
+                                        </div>
+                                    </details>
+                                ))}
+                            </div>
+                        )}
+                        <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
                     </div>
                 ))}
-                {loading && <div className="chat-message agent">Processing...</div>}
+                {loading && (
+                    <div className="chat-message agent" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent-primary)' }}>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Thinking...</span>
+                    </div>
+                )}
             </div>
 
             <div style={{ padding: 16, borderTop: '1px solid var(--glass-border)' }}>
