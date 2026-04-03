@@ -107,9 +107,11 @@ def create_worker_node(agent_class, name):
 
 # Supervisor node
 async def supervisor_node(state: AgentState):
+    from app.agents.dynamic_agent import spin_up_agent, create_swarm_team
+    from app.agents.tools import save_memory, recall_memories
     llm = get_llm()
-    # Bind the handoff tool
-    tools = [handoff_to_agent]
+    # Bind the handoff, swarm, and memory tools
+    tools = [handoff_to_agent, spin_up_agent, create_swarm_team, save_memory, recall_memories]
     llm_with_tools = llm.bind_tools(tools)
     
     system_prompt = f"""You are the SmartFlow Executive Supervisor.
@@ -119,18 +121,28 @@ Entity ID: {state.entity_id}
 Your goal is to answer the user's financial query by delegating tasks to specialists.
 Workers:
 - CollectionsAgent: Overdue invoices, payment reminders, customer aging.
-- PaymentsAgent: Vendor payments, cash flow forecasts, pending bills, historical transactions (ledger).
+- PaymentsAgent: ALL historical transactions, ledger queries, finding highest/largest payments, vendor queries, pending bills, cash flow.
 - GSTAgent: Tax compliance, GSTR-1/3B filing status, ITC reconciliation.
 - CreditAdvisoryAgent: Credit score, risk assessment, loan eligibility, cash runway.
-- DecisionAdvisorAgent: Strategic business advice, burn rate analysis.
+- DecisionAdvisorAgent: Strategic business advice, burn rate analysis (ONLY for hiring/investing scenarios).
+
+MEMORY SYSTEM:
+- You have persistent memory. Use 'recall_memories' at the START of every query to check for relevant user preferences, rules, or past insights.
+- When the user states a preference (e.g. "never send urgent reminders to X"), a business rule, or you discover an important insight, call 'save_memory' to persist it.
+- Always respect recalled memories in your responses (e.g. if a memory says "use polite tone for ABC Corp", honor that).
 
 RULES:
-1. Use 'handoff_to_agent' to get data from specialists.
-2. If you have enough information, provide a final synthesized answer directly.
-3. If the user asks for factual info, ask the PaymentsAgent.
-4. DO NOT hallucinate. Use only data from agent reports.
-5. If no agents are needed or task is complete, answer without calling tools.
-6. CRITICAL FOR TOOLS: When calling a tool (like handoff), DO NOT output any conversational text or explanation whatsoever. Your response must consist ONLY of the tool call format. Do not say "I will now do X".
+1. FIRST call 'recall_memories' with entity_id and relevant keywords from the user's query.
+2. Use 'handoff_to_agent' to route to predefined LangGraph agents.
+3. CRITICAL ROUTING RULE: If the user asks about specific/historical payments, who paid what, largest transactions, or spending, you MUST route to PaymentsAgent. Do not route to DecisionAdvisorAgent.
+4. GREETING RULE: If the user just says a greeting (like "hello", "hi", "hey"), DO NOT route to any agent! Just reply politely.
+5. Use 'TeamCreateTool_SmartFlow' (create_swarm_team) to dynamically spin up an ephemeral sub-team of agents for complex, customized requests.
+6. Use 'AgentTool_SmartFlow' (spin_up_agent) to dynamically spin up a single bespoke agent that doesn't fit standard workers.
+7. Use 'save_memory' when the user states preferences, rules, or important facts about their business.
+8. If you have enough information, provide a final synthesized answer directly.
+9. DO NOT hallucinate. Use only data from agent reports.
+10. If no agents are needed or task is complete, answer without calling tools.
+11. CRITICAL FOR TOOLS: When calling a tool (like handoff), DO NOT output any conversational text or explanation whatsoever. Your response must consist ONLY of the tool call format. Do not say "I will now do X".
 """
     
     response = await llm_with_tools.ainvoke([
@@ -169,9 +181,12 @@ def supervisor_router(state: AgentState):
 def create_langgraph_supervisor():
     builder = StateGraph(AgentState)
     
+    from app.agents.dynamic_agent import spin_up_agent, create_swarm_team
+    from app.agents.tools import save_memory, recall_memories
+    
     # Add nodes
     builder.add_node("supervisor", supervisor_node)
-    builder.add_node("handoff_tools", ToolNode([handoff_to_agent]))
+    builder.add_node("handoff_tools", ToolNode([handoff_to_agent, spin_up_agent, create_swarm_team, save_memory, recall_memories]))
     
     # Add worker nodes
     workers = {
@@ -189,6 +204,9 @@ def create_langgraph_supervisor():
         
     # Set entry point
     builder.set_entry_point("supervisor")
+    
+    # Add manual edge from handoff_tools back to supervisor
+    builder.add_edge("handoff_tools", "supervisor")
     
     # Add edges
     builder.add_conditional_edges(

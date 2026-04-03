@@ -9,6 +9,7 @@ class Settings(BaseSettings):
     # SQLite for development (no server required)
     # Change to PostgreSQL URL for production
     DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///./smartflow.db")
+    AI_MODE: str = os.getenv("AI_MODE", "live")
     class Config:
         case_sensitive = True
         env_file = ".env"

@@ -81,6 +81,8 @@ function Sidebar({ activeTab, setActiveTab, onLogout, accountCategory }) {
         { id: 'upload', label: 'Upload Data', icon: Upload },
         { id: 'agents', label: 'Copilot', icon: MessageSquare },
         { id: 'workforce', label: 'Agent Workforce', icon: Brain },
+        { id: 'memory', label: 'Agent Memory', icon: Search },
+        { id: 'playbooks', label: 'Playbooks', icon: Briefcase },
         { id: 'profile', label: 'Profile & Settings', icon: User },
     ]
 
@@ -932,7 +934,7 @@ import OnboardingWizard from './components/OnboardingWizard'
 import AIInsightsPanel from './components/AIInsightsPanel'
 import LenderProfile from './pages/LenderProfile'
 import { CreditScoreGauge, BurnTrendChart, DSOChart, CashVelocityChart, RiskAlerts } from './components/AdvancedCharts'
-import ScenarioSimulator from './components/ScenarioSimulator'
+import ScenarioSandbox from './components/ScenarioSandbox'
 import CollectionsPlan from './components/CollectionsPlan'
 import SaasDashboard from './components/SaasDashboard'
 import PaymentsSchedule from './components/PaymentsSchedule'
@@ -949,6 +951,8 @@ import {
 } from './components/ZentraDashboard'
 import DarkForecastChart from './components/DarkForecastChart'
 import CashflowHeatmap from './components/CashflowHeatmap'
+import MemoryManager from './components/MemoryManager'
+import PlaybookManager from './components/PlaybookManager'
 
 // Main App Controller
 export default function App() {
@@ -1190,13 +1194,17 @@ export default function App() {
                     )
                 }
 
-                {activeTab === 'models' && <ScenarioSimulator entityId={currentEntity?.id} />}
+                {activeTab === 'models' && <ScenarioSandbox entityId={currentEntity?.id} />}
 
                 {activeTab === 'upload' && <DataUpload entityId={currentEntity?.id} onUploadSuccess={loadOSData} />}
 
                 {activeTab === 'profile' && <Profile />}
 
                 {activeTab === 'workforce' && <AgentLogPage entityId={currentEntity?.id} />}
+
+                {activeTab === 'memory' && <MemoryManager entityId={currentEntity?.id} />}
+
+                {activeTab === 'playbooks' && <PlaybookManager entityId={currentEntity?.id} />}
 
                 {
                     activeTab === 'agents' && (

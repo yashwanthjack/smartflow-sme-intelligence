@@ -44,14 +44,14 @@ def get_summary_metrics(
     # 1. Bank Balance (Sum of all transactions)
     balance = db.query(func.sum(LedgerEntry.amount)).filter(LedgerEntry.entity_id == entity_id).scalar() or 0
     
-    # 2. Net Burn (Avg monthly outflow last 3 months)
-    three_months_ago = datetime.now() - timedelta(days=90)
+    # 2. Net Burn (Avg monthly outflow last 6 months)
+    six_months_ago = datetime.now() - timedelta(days=180)
     total_outflow = db.query(func.sum(LedgerEntry.amount)).filter(
         LedgerEntry.entity_id == entity_id,
         LedgerEntry.amount < 0,
-        LedgerEntry.ledger_date >= three_months_ago
+        LedgerEntry.ledger_date >= six_months_ago
     ).scalar() or 0
-    monthly_burn = abs(total_outflow) / 3 if total_outflow else 0
+    monthly_burn = abs(total_outflow) / 6 if total_outflow else 0
     
     # 3. Runway
     runway_months = (balance / monthly_burn) if monthly_burn > 0 else 999

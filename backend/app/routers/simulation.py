@@ -237,3 +237,96 @@ async def quick_hire_check(
         monthly_salary_per_hire=salary
     )
     return await run_scenario(scenario, current_user, db)
+
+
+@router.get("/live")
+async def live_scenario(
+    hiring_count: int = 0,
+    salary: float = 80000,
+    marketing_pct: float = 0,
+    revenue_pct: float = 0,
+    one_time: float = 0,
+    loan_amount: float = 0,
+    current_user: User = Depends(get_current_active_user),
+    db: Session = Depends(get_db),
+):
+    """
+    Lightweight real-time scenario endpoint for interactive sliders.
+    Uses deterministic linear projection (no Monte Carlo) for <100ms response.
+    """
+    entity_id = current_user.entity_id
+    if not entity_id:
+        raise HTTPException(status_code=400, detail="User must be linked to an organization")
+
+    today = date.today()
+    six_months_ago = today - timedelta(days=180)
+
+    # Current cash balance
+    cash_balance = float(db.query(func.sum(LedgerEntry.amount)).filter(
+        LedgerEntry.entity_id == entity_id
+    ).scalar() or 0)
+
+    # Average monthly burn (last 6 months)
+    total_expenses = float(db.query(func.sum(LedgerEntry.amount)).filter(
+        LedgerEntry.entity_id == entity_id,
+        LedgerEntry.amount < 0,
+        LedgerEntry.ledger_date >= six_months_ago
+    ).scalar() or 0)
+
+    current_burn = abs(total_expenses) / 6 if total_expenses else 50000.0
+
+    # Calculate new burn
+    hiring_cost = hiring_count * salary
+    marketing_delta = (current_burn * 0.10) * (marketing_pct / 100)
+    revenue_offset = (current_burn * 0.5) * (revenue_pct / 100)
+    new_burn = current_burn + hiring_cost + marketing_delta - revenue_offset
+
+    # Adjusted cash (one-time expense + loan injection)
+    adjusted_cash = cash_balance - one_time + loan_amount
+
+    # Current and new runway
+    current_runway = calculate_runway(cash_balance, current_burn)
+    new_runway = calculate_runway(adjusted_cash, new_burn)
+
+    risk_level, status = get_risk_level(new_runway)
+
+    # Simple 12-month linear projection (fast, no numpy)
+    baseline_projection = []
+    scenario_projection = []
+    baseline_bal = cash_balance
+    scenario_bal = adjusted_cash
+
+    for month in range(1, 13):
+        baseline_bal -= current_burn
+        scenario_bal -= new_burn
+        baseline_projection.append({
+            "month": f"Month {month}",
+            "baseline": round(max(baseline_bal, 0), 0),
+            "scenario": round(max(scenario_bal, 0), 0),
+            "threshold": 500000,
+        })
+
+    recommendation = generate_recommendation(
+        ScenarioInput(
+            hiring_count=hiring_count,
+            monthly_salary_per_hire=salary,
+            marketing_increase_percent=marketing_pct,
+            revenue_growth_percent=revenue_pct,
+            one_time_expense=one_time,
+        ),
+        current_runway,
+        new_runway,
+    )
+
+    return {
+        "current_runway": round(current_runway, 1),
+        "new_runway": round(new_runway, 1),
+        "current_burn": round(current_burn, 0),
+        "new_burn": round(new_burn, 0),
+        "cash_balance": round(cash_balance, 0),
+        "adjusted_cash": round(adjusted_cash, 0),
+        "risk_level": risk_level,
+        "status": status,
+        "recommendation": recommendation,
+        "projection": baseline_projection,
+    }

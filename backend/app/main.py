@@ -18,6 +18,7 @@ from app.models.credit_feature import CreditFeature
 from app.models.audit_log import AuditLog
 from app.models.case import Case
 from app.models.user import User  # Auth model
+from app.models.memory import Memory  # Persistent memory
 
 
 @asynccontextmanager
@@ -90,3 +91,13 @@ app.include_router(metrics.router, prefix="/api")
 # Phase 10 - Audit Trail
 from app.routers import audit
 app.include_router(audit.router, prefix="/api/audit", tags=["Audit"])
+
+# Phase 11 - Persistent Agent Memory
+from app.routers import memory
+app.include_router(memory.router, prefix="/api/memory", tags=["Memory"])
+
+# Phase 12 - Custom Playbooks
+from app.models.playbook import Playbook, PlaybookRun  # noqa: F401
+from app.routers import playbook
+app.include_router(playbook.router, prefix="/api/playbooks", tags=["Playbooks"])
+

@@ -110,7 +110,7 @@ class BaseAgent(ABC):
             agent_executor = create_react_agent(
                 llm,
                 agent_tools,
-                prompt=self.system_prompt + "\n\nYou have access to tools. Use them to gather real data before answering. The entity_id for this business is: {entity_id}. Always use the entity_id when calling tools that require it."
+                prompt=self.system_prompt + f"\n\nYou have access to tools. Use them to gather real data before answering. The entity_id for this business is: {self.entity_id}. Always use the entity_id when calling tools that require it."
             )
             
             # Run

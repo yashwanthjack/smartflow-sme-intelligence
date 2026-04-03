@@ -402,12 +402,13 @@ def analyze_ledger_spending(entity_id: str) -> str:
 
 
 @tool
-def query_ledger_entries(entity_id: str, category: Optional[str] = None, limit: int = 5) -> str:
-    """Search for specific ledger entries by category or just list recent ones.
+def query_ledger_entries(entity_id: str, category: Optional[str] = None, search_term: Optional[str] = None, limit: int = 5) -> str:
+    """Search for specific ledger entries by category, keyword, or just list recent ones.
     
     Args:
         entity_id: The unique identifier of the business entity
         category: Filter by category (revenue, expense, salary, gst, etc.)
+        search_term: Keyword to search in the transaction description (e.g., 'Yashwanth', 'UPI')
         limit: Max results to return
     """
     db = get_db_session()
@@ -420,6 +421,8 @@ def query_ledger_entries(entity_id: str, category: Optional[str] = None, limit: 
         query = db.query(LedgerEntry).filter(LedgerEntry.entity_id == entity_id)
         if category:
             query = query.filter(LedgerEntry.category == category.lower())
+        if search_term:
+            query = query.filter(LedgerEntry.description.ilike(f"%{search_term}%"))
         
         entries = query.order_by(LedgerEntry.ledger_date.desc()).limit(limit).all()
         
@@ -438,6 +441,46 @@ def query_ledger_entries(entity_id: str, category: Optional[str] = None, limit: 
         return result
     except Exception as e:
         return f"Error querying ledger: {str(e)}"
+
+@tool
+def get_top_spending_recipients(entity_id: str, limit: int = 5) -> str:
+    """Find out to whom the business spent the most money (Top vendors / payees).
+    
+    Args:
+        entity_id: The unique identifier of the business entity
+        limit: Number of top recipients to return
+    """
+    db = get_db_session()
+    if not db: return "Database connection unavailable."
+    
+    try:
+        from app.models.ledger_entry import LedgerEntry
+        from sqlalchemy import func
+        
+        expenses = (
+            db.query(
+                LedgerEntry.description,
+                func.sum(LedgerEntry.amount).label("total_spent")
+            )
+            .filter(LedgerEntry.entity_id == entity_id)
+            .filter(LedgerEntry.amount < 0)
+            .group_by(LedgerEntry.description)
+            .order_by(func.sum(LedgerEntry.amount).asc())
+            .limit(limit)
+            .all()
+        )
+        
+        if not expenses:
+            return "No spending data found."
+            
+        result = "💸 **Top Spending Recipients**\n\n"
+        for i, (desc, amount) in enumerate(expenses):
+            desc_clean = desc if desc else "Unknown/Uncategorized"
+            result += f"{i+1}. **{desc_clean}**: ₹{abs(amount):,.0f}\n"
+            
+        return result
+    except Exception as e:
+        return f"Error analyzing top spending: {str(e)}"
 
 @tool
 def get_highest_transaction(entity_id: str) -> str:
@@ -790,3 +833,84 @@ def update_invoice_status(invoice_id: str, new_status: str) -> str:
         return f"✅ Autonomous Action Success: Invoice {invoice.invoice_number} moved from {old_status} to {new_status}."
     except Exception as e:
         return f"❌ Autonomous Action Failed: {str(e)}"
+
+
+# ============================================================================
+# MEMORY TOOLS — Persistent Agent Memory
+# ============================================================================
+
+@tool
+def save_memory(entity_id: str, content: str, category: str = "insight") -> str:
+    """Save a persistent memory for this entity. Use this when the user states
+    a preference, business rule, or when you discover an important insight.
+
+    Categories: 'preference', 'rule', 'insight', 'fact'
+
+    Args:
+        entity_id: The unique identifier of the business entity
+        content: The memory to store (e.g. 'User prefers polite tone for ABC Corp reminders')
+        category: One of: preference, rule, insight, fact
+
+    Returns:
+        Confirmation that the memory was saved
+    """
+    db = get_db_session()
+    if not db:
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+
+    try:
+        from app.models.memory import Memory
+        mem = Memory(
+            entity_id=entity_id,
+            content=content,
+            category=category,
+            source_agent="SmartFlowAgent",
+            importance=3,
+        )
+        db.add(mem)
+        db.commit()
+        return f"🧠 Memory saved [{category}]: {content}"
+    except Exception as e:
+        return f"❌ Failed to save memory: {str(e)}"
+
+
+@tool
+def recall_memories(entity_id: str, query: str = "") -> str:
+    """Recall persistent memories for this entity. Use this at the start of
+    every conversation to check for relevant user preferences, rules, or
+    past insights that should influence your response.
+
+    Args:
+        entity_id: The unique identifier of the business entity
+        query: Optional keyword to filter memories (searches content)
+
+    Returns:
+        List of relevant memories, or 'No memories found'
+    """
+    db = get_db_session()
+    if not db:
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+
+    try:
+        from app.models.memory import Memory
+        q = db.query(Memory).filter(Memory.entity_id == entity_id)
+
+        if query:
+            # Simple keyword search across content
+            for word in query.split():
+                q = q.filter(Memory.content.ilike(f"%{word}%"))
+
+        q = q.order_by(Memory.importance.desc(), Memory.created_at.desc()).limit(10)
+        memories = q.all()
+
+        if not memories:
+            return "No relevant memories found for this entity."
+
+        result = "🧠 **Agent Memory Recall**\n\n"
+        for mem in memories:
+            result += f"- [{mem.category}] {mem.content} _(by {mem.source_agent})_\n"
+        return result
+    except Exception as e:
+        return f"Error recalling memories: {str(e)}"
