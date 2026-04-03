@@ -725,6 +725,10 @@ tr:hover {
   }
 }
 
+.animate-spin {
+  animation: spin 1s linear infinite;
+}
+
 /* ============================================
    ENTITY SELECTOR
    ============================================ */

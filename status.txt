@@ -1,0 +1,15 @@
+﻿A  ai-launchpad-reference
+ M backend/app/agents/langgraph_supervisor.py
+ M backend/app/routers/simulation.py
+A  backend/check_highest.py
+M  backend/out.txt
+A  backend/pytest_error.txt
+M  backend/test_out.txt
+M  backend/test_query.py
+A  check_db.py
+A  frontend/build_error.txt
+ M frontend/src/App.jsx
+ M frontend/src/components/ScenarioSimulator.jsx
+ M frontend/src/index.css
+?? backend/fix_dates.py
+?? status.txt

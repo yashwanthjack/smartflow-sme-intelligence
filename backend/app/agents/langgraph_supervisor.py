@@ -22,13 +22,16 @@ from app.agents.decision_advisor_agent import DecisionAdvisorAgent
 from app.db.database import SessionLocal
 from app.models.audit_log import AuditLog
 
-# State definition inspired by ai-launchpad
+def replace_value(old, new):
+    return new
+
 class AgentState(BaseModel):
     messages: Annotated[list, add_messages] = []
     entity_id: str
-    active_agent: Optional[str] = None
+    active_agent: Annotated[Optional[str], replace_value] = None
     agent_reports: Annotated[list, operator.add] = []
-    task_description: Optional[str] = None
+    task_description: Annotated[Optional[str], replace_value] = None
+
 
 # Handoff tool as used in ai-launchpad
 @tool
@@ -124,9 +127,10 @@ Workers:
 RULES:
 1. Use 'handoff_to_agent' to get data from specialists.
 2. If you have enough information, provide a final synthesized answer directly.
-3. If the user asks for factual info like 'highest transaction', ask the PaymentsAgent.
+3. If the user asks for factual info, ask the PaymentsAgent.
 4. DO NOT hallucinate. Use only data from agent reports.
 5. If no agents are needed or task is complete, answer without calling tools.
+6. CRITICAL FOR TOOLS: When calling a tool (like handoff), DO NOT output any conversational text or explanation whatsoever. Your response must consist ONLY of the tool call format. Do not say "I will now do X".
 """
     
     response = await llm_with_tools.ainvoke([

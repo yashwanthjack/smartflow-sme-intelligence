@@ -826,7 +826,8 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
             zIndex: 1000,
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '-4px 0 20px rgba(0,0,0,0.2)'
+            boxShadow: '-4px 0 20px rgba(0,0,0,0.2)',
+            overflow: 'hidden'
         }}>
             <div style={{ padding: 16, borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -837,7 +838,7 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
                 </button>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {messages.map((msg, idx) => (
                     <div key={idx} className={`chat-message ${msg.role}`} style={{ fontSize: 13, borderBottom: '1px solid var(--glass-border)', paddingBottom: 12 }}>
                         {msg.reports && msg.reports.length > 0 && (
@@ -852,7 +853,8 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
                                             background: 'rgba(255,255,255,0.03)', 
                                             borderRadius: 4, 
                                             marginTop: 4,
-                                            whiteSpace: 'pre-wrap'
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word'
                                         }}>
                                             {report}
                                         </div>
@@ -860,9 +862,10 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
                                 ))}
                             </div>
                         )}
-                        <div style={{ whiteSpace: 'pre-wrap' }}>{msg.content}</div>
+                        <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '1.4' }}>{msg.content}</div>
                     </div>
                 ))}
+
                 {loading && (
                     <div className="chat-message agent" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent-primary)' }}>
                         <RefreshCw size={14} className="animate-spin" />
@@ -871,10 +874,27 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
                 )}
             </div>
 
-            <div style={{ padding: 16, borderTop: '1px solid var(--glass-border)' }}>
-                <div className="chat-input" style={{ marginBottom: 0 }}>
+            <div style={{ padding: 16, borderTop: '1px solid var(--glass-border)', background: 'var(--bg-card)' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    background: 'var(--bg-secondary)', 
+                    border: '1px solid var(--glass-border)', 
+                    borderRadius: 24, 
+                    padding: '8px 16px',
+                    gap: 8
+                 }}>
                     <input
                         type="text"
+                        style={{ 
+                            flex: 1, 
+                            border: 'none', 
+                            background: 'transparent', 
+                            color: 'var(--text-primary)', 
+                            outline: 'none', 
+                            fontSize: 14,
+                            width: '100%' 
+                        }}
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && sendMessage()}
@@ -882,7 +902,25 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
                         disabled={!entityId}
                         autoFocus
                     />
-                    <button onClick={sendMessage} disabled={loading || !entityId}><Send size={16} /></button>
+                    <button 
+                        onClick={() => sendMessage()} 
+                        disabled={loading || !entityId} 
+                        style={{ 
+                            background: 'var(--accent-primary)', 
+                            border: 'none', 
+                            borderRadius: '50%', 
+                            width: 32, 
+                            height: 32, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            color: 'white',
+                            cursor: (loading || !entityId) ? 'not-allowed' : 'pointer',
+                            flexShrink: 0,
+                            padding: 0
+                        }}>
+                        <Send size={14} />
+                    </button>
                 </div>
             </div>
         </div>

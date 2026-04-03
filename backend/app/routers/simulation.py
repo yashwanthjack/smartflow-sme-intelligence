@@ -87,7 +87,7 @@ def generate_recommendation(scenario: ScenarioInput, current_runway: float, new_
     return "✅ Runway remains healthy. Monitor monthly burn rate post-implementation."
 
 
-@router.post("/", response_model=ScenarioResult)
+@router.post("", response_model=ScenarioResult)
 async def run_scenario(
     scenario: ScenarioInput,
     current_user: User = Depends(get_current_active_user),
@@ -108,18 +108,18 @@ async def run_scenario(
     six_months_ago = today - timedelta(days=180)
     
     # Calculate current cash balance
-    cash_balance = db.query(func.sum(LedgerEntry.amount)).filter(
+    cash_balance = float(db.query(func.sum(LedgerEntry.amount)).filter(
         LedgerEntry.entity_id == entity_id
-    ).scalar() or 0
+    ).scalar() or 0)
     
     # Calculate average monthly burn (last 6 months expenses)
-    total_expenses = db.query(func.sum(LedgerEntry.amount)).filter(
+    total_expenses = float(db.query(func.sum(LedgerEntry.amount)).filter(
         LedgerEntry.entity_id == entity_id,
         LedgerEntry.amount < 0,
         LedgerEntry.ledger_date >= six_months_ago
-    ).scalar() or 0
+    ).scalar() or 0)
     
-    current_burn = abs(total_expenses) / 6 if total_expenses else 50000  # Default ₹50k if no data
+    current_burn = abs(total_expenses) / 6 if total_expenses else 50000.0  # Default ₹50k if no data
     current_runway = calculate_runway(cash_balance, current_burn)
     
     # Calculate scenario impact
