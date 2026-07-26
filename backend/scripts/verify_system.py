@@ -69,6 +69,37 @@ def run_verification():
         except Exception as e:
             print(f"   ❌ {name.title()}: Error {e}")
 
+    # 3. Agent System
+    print("\n3. Testing Agent System...")
+    agent_queries = [
+        ("Collections", "Any overdue invoices?"),
+        ("Payments", "Who should I pay first?"),
+        ("GST", "Am I GST compliant?"),
+        ("Decision Advisor", "Can I afford to hire a new developer for 2 lakhs per month?"),
+        ("Full Analysis", "How is my business doing?")
+    ]
+    
+    for name, query in agent_queries:
+        try:
+            print(f"   🤖 Testing {name}...")
+            res = requests.post(
+                f"{BASE_URL}/agents/query/{entity_id}", 
+                json={"query": query},
+                headers=headers
+            )
+            if res.status_code == 200:
+                data = res.json()
+                agent_used = data.get("agent_used", "unknown")
+                print(f"      ✅ OK (Handled by: {agent_used})")
+                # Briefly show first line of output
+                output = data.get("output", "")
+                first_line = output.split("\n")[0] if output else "No output"
+                print(f"      📝 {first_line[:70]}...")
+            else:
+                print(f"      ❌ Failed ({res.status_code}): {res.text[:100]}")
+        except Exception as e:
+            print(f"      ❌ Error: {e}")
+
     print("\n--------------------------------")
     print("🎉 Verification Complete!")
 

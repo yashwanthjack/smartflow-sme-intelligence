@@ -1,61 +1,57 @@
-# ⚡ SmartFlow OS
+# ⚡ SmartFlow SME Intelligence
 
-> **The AI-Native Financial Operating System for SMEs.**
-> *Connected. Intelligent. Real-time.*
+> **The Multi-Agent Financial Operating System for Indian SMEs.**  
+> *Autonomous. Intelligent. Real-time.*
 
-SmartFlow OS is a next-generation financial platform that acts as a **Fractional CFO** for businesses. It ingests messy financial data, normalizes it into a unified ledger, and uses AI Agents to provide strategic advice, cash flow forecasting, and risk intelligence.
-
----
-
-## 🌟 Key Features
-
-### 1. 📊 Real-Time Financial Dashboard
-*   **Live Metrics**: Instant view of Cash Balance, Net Burn, Runway, and Net Income.
-*   **Payments Waterfall**: Visual tracking of payment lifecycles (Initiated → Authorized → Settled).
-*   **Gross Volume**: Revenue breakdown by channel (Online vs In-Store vs Subscriptions).
-
-### 2. 🤖 AI Copilot & CFO Agents
-*   **Natural Language Queries**: Ask *"What is my current runway?"* or *"Why is burn high this month?"*.
-*   **Decision Advisor**: Creating "What-if" scenarios (e.g., *"Can I afford to hire a Senior Dev?"*) with real-time impact simulation.
-*   **Credit Advisory**: Automated CFO-level health assessments and credit scoring.
-
-### 3. 🛡️ Risk & Scenario Engine
-*   **Risk Scorecard**: Live credit scoring based on cash flow patterns and counterparty risk.
-*   **Scenario Simulator**: interactive tools to model expenses and revenue changes.
-*   **Dark Forecast**: AI-driven predictions for future cash flow with confidence bands.
-
-### 4. 🏢 Multi-Tenant & Secure
-*   **Entity Isolation**: Full data separation for multiple organizations.
-*   **Role-Based Access**: Granular permissions (Admin, Viewer, Lender).
+SmartFlow is an AI-Native Financial OS that transforms messy bank statements, invoices, and GST data into a high-performance "Fractional CFO" workforce. Powered by **LangGraph** and **Llama-3.1**, it doesn't just show you charts—it autonomously analyzes, reasons, and executes financial strategies.
 
 ---
 
-## 🛠️ Tech Stack
+## 🤖 The Autonomous Agentic Workforce
 
-### Frontend
-*   **React 18**: Component-based UI architecture.
-*   **Vite**: Blazing fast build tool.
-*   **Recharts**: Interactive financial charting.
-*   **Zentra Design System**: Custom glassmorphism UI with "Premium" aesthetics.
+SmartFlow utilizes a **Hierarchical Multi-Agent Architecture** to process complex financial workflows:
 
-### Backend
-*   **FastAPI**: High-performance Python web framework.
-*   **PostgreSQL**: Robust relational database for financial ledgers.
-*   **SQLAlchemy**: ORM for database interactions.
+-   **Executive Supervisor**: The brain of the system. It classifies user intent, recalls business-specific memories, and delegates tasks to specialized workers.
+-   **Payments Agent**: Optimizes DPO (Days Payable Outstanding). It analyzes bank ledgers, identifies top spenders, and schedules optimized vendor payments to maintain cash safety.
+-   **Collections Agent**: Reduces DSO (Days Sales Outstanding). It monitors overdue invoices and creates automated, context-aware collection plans.
+-   **GST Compliance Agent**: Your tax expert. Reconciles GSTR-1/3B filings and ensures Input Tax Credit (ITC) is maximized and compliant.
+-   **Credit Advisory Agent**: Calculates bank-standard Risk Scores and loan eligibility using cash-flow-based underwriting logic.
+-   **Decision Advisor (CFO)**: Runs "What-If" simulations (e.g., Hiring, CAPEX) using real-time runway and burn rate data.
 
-### AI & Intelligence
-*   **LangChain**: Orchestration for AI Agents.
-*   **Local LLM / Gemini**: Flexible support for multiple reasoning models.
-*   **Pandas/NumPy**: Financial modeling and data transformation.
+---
+
+## 🌟 Key Capabilities
+
+### 1. 📊 Intelligent Financial Dashboard
+*   **Live Metrics**: Bank Balance, Net Burn (180-day avg), and real-time Runway projections.
+*   **Interactive Forecasting**: Powered by **Facebook Prophet**, projecting 30-60-90 day cash cycles with ML confidence bands.
+*   **Activity Feed**: A real-time audit trail of every decision, tool-call, and interaction between agents.
+
+### 2. 🧠 Persistent Agentic Memory
+*   SmartFlow remembers your business rules (e.g., *"Wait 2 days before reminding Client X"*).
+*   Agents recall past insights to ensure continuity in financial advice.
+
+### 3. 🛡️ Enterprise-Grade Security
+*   **Data Isolation**: Every agent interaction is strictly scoped to your unique `entity_id`.
+*   **No Training**: Your financial secrets stay yours; data is never used for public model training.
+
+---
+
+## 🛠️ Technology Stack
+
+-   **Frontend**: React 18, Vite, Recharts, Lucide Icons, Custom Glassmorphism CSS.
+-   **Backend**: FastAPI, PostgreSQL, SQLAlchemy.
+-   **AI Orchestration**: LangGraph (Stateful Multi-Agent Graphs), LangChain.
+-   **Intelligence Engine**: Groq (Llama-3.1-8B-Instant), Facebook Prophet (ML Forecasting).
 
 ---
 
 ## 🚀 Getting Started
 
 ### Prerequisites
-*   Node.js 18+
-*   Python 3.10+
-*   PostgreSQL
+- Node.js 18+
+- Python 3.11+
+- PostgreSQL instance running locally or on cloud
 
 ### 1. Setup Backend
 ```bash
@@ -64,10 +60,11 @@ python -m venv venv
 source venv/bin/activate  # or venv\Scripts\activate
 pip install -r requirements.txt
 
-# Configure Database
-# Edit .env or config.py to point to your PostgreSQL instance
+# Configure .env
+# GROQ_API_KEY=your_key
+# DATABASE_URL=postgresql://user:pass@localhost:5432/smartflow
+# AI_MODE=live
 
-# Run Server
 uvicorn app.main:app --reload
 ```
 
@@ -78,41 +75,12 @@ npm install
 npm run dev
 ```
 
-### 3. Seed Real Data (Optional)
-To populate the dashboard with realistic financial history (Invoices, Transactions, Customers):
+### 3. Populate Data & Test
+Use the `App UI -> Upload Data` to ingest your bank statements or run the seeder:
 ```bash
-cd backend
-python scripts/seed_data.py
+python backend/populate_demo_data.py
 ```
 
 ---
 
-## 📂 Project Structure
-
-```
-smartflow-sme-intelligence/
-├── backend/
-│   ├── app/
-│   │   ├── agents/         # AI Logic (Decision Advisor, Credit Agent)
-│   │   ├── models/         # Database Schema (Ledger, Entity, Account)
-│   │   ├── routers/        # API Endpoints (Metrics, Data, Auth)
-│   │   └── main.py         # App Entry Point
-│   └── scripts/            # Utils (Seeding, Migration)
-├── frontend/
-│   ├── src/
-│   │   ├── components/     # UI Blocks (MetricCard, Charts)
-│   │   ├── pages/          # Full Views
-│   │   └── App.jsx         # Main Layout
-└── README.md
-```
-
----
-
-## 🔒 Security & Privacy
-SmartFlow is designed with privacy first. 
-*   **Data Isolation**: Every query is scoped to `entity_id`.
-*   **No Training**: Customer data is *never* used to train public models.
-
----
-
-**Built with ❤️ by YASH**
+**Built with ❤️ for the future of Indian SMEs by YASH**

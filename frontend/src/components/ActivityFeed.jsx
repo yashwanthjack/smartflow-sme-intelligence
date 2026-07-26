@@ -7,12 +7,17 @@ export default function ActivityFeed({ entityId }) {
     const [loading, setLoading] = useState(true)
 
     useEffect(() => {
-        if (entityId) fetchLogs()
+        if (entityId) {
+            fetchLogs()
+            // Poll every 5 seconds for real-time updates
+            const interval = setInterval(fetchLogs, 5000)
+            return () => clearInterval(interval)
+        }
     }, [entityId])
 
     const fetchLogs = async () => {
         try {
-            const token = localStorage.getItem('token')
+            const token = localStorage.getItem('smartflow_token')
             if (!token) {
                 console.warn("No token found, skipping fetch")
                 return
@@ -45,7 +50,19 @@ export default function ActivityFeed({ entityId }) {
         }
     }
 
-    if (loading) return <div className="card" style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading activity...</div>
+    if (loading && logs.length === 0) return <div className="card" style={{ height: '400px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>Loading activity...</div>
+
+    // Sort logs: Highest priority first (CRITICAL > WARNING > INFO), then chronologically newest first
+    const sortedLogs = [...logs].sort((a, b) => {
+        const severityWeight = { 'CRITICAL': 3, 'WARNING': 2, 'INFO': 1, 'ERROR': 3 }
+        const weightA = severityWeight[a.severity] || 0
+        const weightB = severityWeight[b.severity] || 0
+        
+        if (weightA !== weightB) {
+            return weightB - weightA
+        }
+        return new Date(b.timestamp) - new Date(a.timestamp)
+    })
 
     return (
         <div className="card" style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
@@ -70,7 +87,7 @@ export default function ActivityFeed({ entityId }) {
                     </div>
                 ) : (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                        {logs.map((log) => (
+                        {sortedLogs.map((log) => (
                             <div key={log.id} style={{ display: 'flex', gap: '12px', position: 'relative' }}>
                                 {/* Icon */}
                                 <div style={{

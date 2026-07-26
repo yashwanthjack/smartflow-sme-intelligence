@@ -89,14 +89,26 @@ export default function DarkForecastChart({ entityId, title = 'Cash Flow Predict
     // Fetch real data or use generated
     useEffect(() => {
         const fetchData = async () => {
+            const rangeToDays = {
+                '1D': 1,
+                '1W': 7,
+                '1M': 30,
+                '3M': 90,
+                '6M': 180,
+                '1Y': 365,
+                '5Y': 1825,
+                'Max': 3650
+            }
+            const days = rangeToDays[timeRange] || 30
+
             if (!entityId || !token) {
-                setData(generateForecastData(30))
+                setData(generateForecastData(days))
                 setLoading(false)
                 return
             }
 
             try {
-                const res = await fetch(`${API_BASE}/data/entities/${entityId}/forecast?days=30`, {
+                const res = await fetch(`${API_BASE}/data/entities/${entityId}/forecast?days=${days}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 })
                 if (res.ok) {
@@ -104,26 +116,26 @@ export default function DarkForecastChart({ entityId, title = 'Cash Flow Predict
                     if (json.daily_forecast && json.daily_forecast.length > 0) {
                         const formattedData = json.daily_forecast.map(d => ({
                             date: new Date(d.date).toLocaleDateString('en-US', { day: '2-digit', month: 'short' }),
-                            actual: d.actual || d.predicted,
+                            actual: d.actual,
                             prediction: d.predicted,
-                            rangeHigh: d.predicted * 1.15,
-                            rangeLow: d.predicted * 0.85
+                            rangeHigh: d.upper_bound || (d.predicted * 1.15),
+                            rangeLow: d.lower_bound || (d.predicted * 0.85)
                         }))
                         setData(formattedData)
                     } else {
-                        setData(generateForecastData(30))
+                        setData(generateForecastData(days))
                     }
                 } else {
-                    setData(generateForecastData(30))
+                    setData(generateForecastData(days))
                 }
             } catch (e) {
-                setData(generateForecastData(30))
+                setData(generateForecastData(days))
             }
             setLoading(false)
         }
 
         fetchData()
-    }, [entityId, token])
+    }, [entityId, token, timeRange])
 
     // Calculate accuracy stats
     const stats = useMemo(() => {

@@ -33,7 +33,7 @@ graph TD
         API --> Orch
         
         subgraph AgentLayer [Multi-Agent System]
-            Sup[Supervisor Agent]:::service
+            Sup[Supervisor Agent (Orchestrator)]:::service
             Judge[Judge Agent (Guardrail)]:::service
             Adv[Decision Advisor]:::service
             Col[Collections Agent]:::service
@@ -41,11 +41,14 @@ graph TD
             Tax[GST Compliance Agent]:::service
             
             Orch --> Sup
-            Sup --> Judge
-            Sup --> Adv
-            Sup --> Col
-            Sup --> Risk
-            Sup --> Tax
+            Sup -- Intent Classification --> Judge
+            Sup -- Scenario Analysis --> Adv
+            Sup -- Account Receivables --> Col
+            Sup -- Credit Risk --> Risk
+            Sup -- Tax Obligations --> Tax
+            
+            %% Result Synthesis
+            Judge & Adv & Col & Risk & Tax -->|Agent Reports| Sup
         end
 
         subgraph CoreServices [Predictive Services]
@@ -101,12 +104,14 @@ graph TD
 - **Copilot**: Natural language interface to financial agents.
 
 ### 2. Backend Layer (FastAPI)
-- **Agent Orchestrator**: Manages the lifecycle and tool execution of AI agents using LangChain.
+- **Agent Orchestrator**: Manages the multi-agent lifecycle using LangChain and FastAPI.
+- **Supervisor Agent**: The "Brain" of the system.
+  - **Intent Classification**: Dynamically routes user queries to the most relevant specialized agents.
+  - **Result Synthesis**: Consolidates multiple agent outputs into a single, cohesive, and actionable response using LLM reasoning.
 - **Specialized Agents**:
-  - **Supervisor**: Routes user intents.
-  - **Judge**: Validates high-stakes financial advice.
-  - **Decision Advisor**: Runs "What-If" simulations.
-  - **Collections/GST/Credit**: Domain-specific execution agents.
+  - **Judge**: Validates high-stakes financial advice and ensures safety guardrails.
+  - **Decision Advisor**: Runs "What-If" simulations for cash flow and hiring impact.
+  - **Collections/GST/Credit**: Domain-specific workers (CollectionsBot, PaymentsOptimizer, GSTComplianceAgent).
 
 ### 3. Predictive Services
 - **Scoring Service**: Hybrid XGBoost + Heuristic model for accurate credit assessment.

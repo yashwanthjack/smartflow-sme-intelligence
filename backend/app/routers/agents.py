@@ -11,6 +11,7 @@ from app.agents.payments_agent import run_payments_agent
 from app.agents.gst_agent import run_gst_agent
 from app.agents.credit_advisory_agent import run_credit_advisory_agent
 from app.agents.supervisor_agent import run_supervisor, run_full_analysis, classify_intent
+from app.agents.langgraph_supervisor import run_langgraph_supervisor
 
 router = APIRouter()
 
@@ -154,7 +155,7 @@ class QueryRequest(BaseModel):
 
 class SupervisorResponse(BaseModel):
     agent_used: str
-    intent: str
+    intent: Optional[str] = None
     success: bool
     output: Optional[str] = None
     error: Optional[str] = None
@@ -173,7 +174,30 @@ async def query_supervisor(
     """
     verify_entity_access(current_user, entity_id)
     try:
-        result = await run_supervisor(entity_id, request.query)
+        # result = await run_supervisor(entity_id, request.query)
+        result = await run_langgraph_supervisor(entity_id, request.query)
+        return SupervisorResponse(**result)
+    except Exception as e:
+        return SupervisorResponse(
+            agent_used="supervisor",
+            intent="error",
+            success=False,
+            error=str(e)
+        )
+
+
+# Temporary test endpoint without authentication for development
+@router.post("/test-query/{entity_id}")
+async def test_query_supervisor(
+    entity_id: str,
+    request: QueryRequest
+):
+    """
+    TEST ENDPOINT: Unified query without authentication (for development only)
+    """
+    try:
+        # result = await run_supervisor(entity_id, request.query)
+        result = await run_langgraph_supervisor(entity_id, request.query)
         return SupervisorResponse(**result)
     except Exception as e:
         return SupervisorResponse(

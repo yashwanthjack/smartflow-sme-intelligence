@@ -7,7 +7,7 @@ import {
 } from 'recharts'
 import { ToggleLeft, ToggleRight, Info } from 'lucide-react'
 
-const API_BASE = 'http://localhost:8000/api'
+const API_BASE = '/api'
 
 // Generate sample forecast data
 const generateForecastData = (days = 30) => {
@@ -90,7 +90,7 @@ export default function ForecastChart({ entityId, title = 'Cash Flow Prediction'
     // Fetch real data or use generated
     useEffect(() => {
         const fetchData = async () => {
-            const authToken = token || localStorage.getItem('token');
+            const authToken = token || localStorage.getItem('smartflow_token')
             if (!entityId || !authToken) {
                 setData(generateForecastData(30))
                 setLoading(false)

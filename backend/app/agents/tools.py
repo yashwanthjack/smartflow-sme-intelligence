@@ -5,6 +5,7 @@ from langchain.tools import tool
 from typing import Optional
 from datetime import date, timedelta
 
+from sqlalchemy import func
 from sqlalchemy.orm import Session
 from contextvars import ContextVar
 
@@ -68,7 +69,6 @@ def get_overdue_invoices(entity_id: str) -> str:
                     result += f"- **{inv.invoice_number}**: ₹{inv.balance_due:,.0f} from {cp_name} ({days_overdue} days overdue)\n"
                     total += inv.balance_due
                 
-                result += f"\n**Total Overdue**: ₹{total:,.0f}"
                 result += f"\n**Total Overdue**: ₹{total:,.0f}"
                 return result
         except Exception as e:
@@ -278,7 +278,6 @@ def get_pending_payables(entity_id: str) -> str:
                     total += inv.balance_due
                 
                 result += f"\n**Total Pending**: ₹{total:,.0f}"
-                result += f"\n**Total Pending**: ₹{total:,.0f}"
                 return result
             else:
                 return "✅ **No pending payables found.** You are up to date!"
@@ -402,9 +401,168 @@ def analyze_ledger_spending(entity_id: str) -> str:
         return f"Error analyzing ledger: {str(e)}"
 
 
-# ============================================================================
-# GST COMPLIANCE TOOLS
-# ============================================================================
+@tool
+def query_ledger_entries(entity_id: str, category: Optional[str] = None, search_term: Optional[str] = None, limit: int = 5) -> str:
+    """Search for specific ledger entries by category, keyword, or just list recent ones.
+    
+    Args:
+        entity_id: The unique identifier of the business entity
+        category: Filter by category (revenue, expense, salary, gst, etc.)
+        search_term: Keyword to search in the transaction description (e.g., 'Yashwanth', 'UPI')
+        limit: Max results to return
+    """
+    db = get_db_session()
+    if not db: return "Database connection unavailable."
+    
+    try:
+        from app.models.ledger_entry import LedgerEntry
+        from app.models.counterparty import Counterparty
+        
+        query = db.query(LedgerEntry).filter(LedgerEntry.entity_id == entity_id)
+        if category:
+            query = query.filter(LedgerEntry.category == category.lower())
+        if search_term:
+            query = query.filter(LedgerEntry.description.ilike(f"%{search_term}%"))
+        
+        entries = query.order_by(LedgerEntry.ledger_date.desc()).limit(limit).all()
+        
+        if not entries:
+            return f"No ledger entries found for category '{category}'." if category else "No ledger entries found."
+            
+        result = "📒 **Ledger Query Results**\n\n"
+        for entry in entries:
+            cp_name = "Internal"
+            if entry.counterparty_id:
+                cp = db.query(Counterparty).filter(Counterparty.id == entry.counterparty_id).first()
+                if cp: cp_name = cp.name
+            
+            result += f"- {entry.ledger_date}: ₹{entry.amount:,.0f} | {entry.category} | {entry.description} (Partner: {cp_name})\n"
+            
+        return result
+    except Exception as e:
+        return f"Error querying ledger: {str(e)}"
+
+@tool
+def get_top_spending_recipients(entity_id: str, limit: int = 5) -> str:
+    """Find out to whom the business spent the most money (Top vendors / payees).
+    
+    Args:
+        entity_id: The unique identifier of the business entity
+        limit: Number of top recipients to return
+    """
+    db = get_db_session()
+    if not db: return "Database connection unavailable."
+    
+    try:
+        from app.models.ledger_entry import LedgerEntry
+        from sqlalchemy import func
+        
+        expenses = (
+            db.query(
+                LedgerEntry.description,
+                func.sum(LedgerEntry.amount).label("total_spent")
+            )
+            .filter(LedgerEntry.entity_id == entity_id)
+            .filter(LedgerEntry.amount < 0)
+            .group_by(LedgerEntry.description)
+            .order_by(func.sum(LedgerEntry.amount).asc())
+            .limit(limit)
+            .all()
+        )
+        
+        if not expenses:
+            return "No spending data found."
+            
+        result = "💸 **Top Spending Recipients**\n\n"
+        for i, (desc, amount) in enumerate(expenses):
+            desc_clean = desc if desc else "Unknown/Uncategorized"
+            result += f"{i+1}. **{desc_clean}**: ₹{abs(amount):,.0f}\n"
+            
+        return result
+    except Exception as e:
+        return f"Error analyzing top spending: {str(e)}"
+
+@tool
+def get_highest_transaction(entity_id: str) -> str:
+    """Get the single highest-value transaction (in absolute terms) in the ledger."""
+    db = get_db_session()
+    
+    if db is not None:
+        try:
+            from app.models.ledger_entry import LedgerEntry
+            from app.models.counterparty import Counterparty
+
+            highest = (
+                db.query(LedgerEntry)
+                .filter(LedgerEntry.entity_id == entity_id)
+                .order_by(func.abs(LedgerEntry.amount).desc())
+                .first()
+            )
+
+            if highest:
+                cp_name = "Unknown"
+                if highest.counterparty_id:
+                    cp = db.query(Counterparty).filter(Counterparty.id == highest.counterparty_id).first()
+                    if cp:
+                        cp_name = cp.name
+
+                direction = "received" if highest.amount > 0 else "paid"
+                amt = abs(highest.amount)
+                date_str = highest.ledger_date
+                desc = highest.description or "(no description)"
+
+                return f"Highest transaction was ₹{amt:,.0f} {direction} on {date_str} ({desc}). Partner: {cp_name}."
+
+            return "No transactions found in the ledger."
+
+        except Exception as e:
+            return f"Error fetching transaction data: {str(e)}"
+
+    return "Database connection unavailable."
+
+
+@tool
+def get_highest_received_payment(entity_id: str) -> str:
+    """Get the highest payment received and from which counterparty.
+    
+    Args:
+        entity_id: The unique identifier of the business entity
+        
+    Returns:
+        Information about the highest received payment
+    """
+    db = get_db_session()
+    
+    if db is not None:
+        try:
+            from app.models.ledger_entry import LedgerEntry
+            from app.models.counterparty import Counterparty
+            
+            # Find the highest positive amount (received payment)
+            highest_payment = (
+                db.query(LedgerEntry)
+                .filter(LedgerEntry.entity_id == entity_id)
+                .filter(LedgerEntry.amount > 0)
+                .order_by(LedgerEntry.amount.desc())
+                .first()
+            )
+            
+            if highest_payment:
+                # Get counterparty name if available
+                cp_name = "Unknown"
+                if highest_payment.counterparty_id:
+                    cp = db.query(Counterparty).filter(Counterparty.id == highest_payment.counterparty_id).first()
+                    if cp:
+                        cp_name = cp.name
+                
+                return f"💰 **Highest Received Payment**: ₹{highest_payment.amount:,.0f} from **{cp_name}** on {highest_payment.ledger_date} ({highest_payment.description})"
+            else:
+                return "No received payments found in the ledger."
+                
+        except Exception as e:
+            return f"Error fetching payment data: {str(e)}"
+    
+    return "Database connection unavailable."
 
 @tool
 def check_gst_compliance(entity_id: str) -> dict:
@@ -675,3 +833,84 @@ def update_invoice_status(invoice_id: str, new_status: str) -> str:
         return f"✅ Autonomous Action Success: Invoice {invoice.invoice_number} moved from {old_status} to {new_status}."
     except Exception as e:
         return f"❌ Autonomous Action Failed: {str(e)}"
+
+
+# ============================================================================
+# MEMORY TOOLS — Persistent Agent Memory
+# ============================================================================
+
+@tool
+def save_memory(entity_id: str, content: str, category: str = "insight") -> str:
+    """Save a persistent memory for this entity. Use this when the user states
+    a preference, business rule, or when you discover an important insight.
+
+    Categories: 'preference', 'rule', 'insight', 'fact'
+
+    Args:
+        entity_id: The unique identifier of the business entity
+        content: The memory to store (e.g. 'User prefers polite tone for ABC Corp reminders')
+        category: One of: preference, rule, insight, fact
+
+    Returns:
+        Confirmation that the memory was saved
+    """
+    db = get_db_session()
+    if not db:
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+
+    try:
+        from app.models.memory import Memory
+        mem = Memory(
+            entity_id=entity_id,
+            content=content,
+            category=category,
+            source_agent="SmartFlowAgent",
+            importance=3,
+        )
+        db.add(mem)
+        db.commit()
+        return f"🧠 Memory saved [{category}]: {content}"
+    except Exception as e:
+        return f"❌ Failed to save memory: {str(e)}"
+
+
+@tool
+def recall_memories(entity_id: str, query: str = "") -> str:
+    """Recall persistent memories for this entity. Use this at the start of
+    every conversation to check for relevant user preferences, rules, or
+    past insights that should influence your response.
+
+    Args:
+        entity_id: The unique identifier of the business entity
+        query: Optional keyword to filter memories (searches content)
+
+    Returns:
+        List of relevant memories, or 'No memories found'
+    """
+    db = get_db_session()
+    if not db:
+        from app.db.database import SessionLocal
+        db = SessionLocal()
+
+    try:
+        from app.models.memory import Memory
+        q = db.query(Memory).filter(Memory.entity_id == entity_id)
+
+        if query:
+            # Simple keyword search across content
+            for word in query.split():
+                q = q.filter(Memory.content.ilike(f"%{word}%"))
+
+        q = q.order_by(Memory.importance.desc(), Memory.created_at.desc()).limit(10)
+        memories = q.all()
+
+        if not memories:
+            return "No relevant memories found for this entity."
+
+        result = "🧠 **Agent Memory Recall**\n\n"
+        for mem in memories:
+            result += f"- [{mem.category}] {mem.content} _(by {mem.source_agent})_\n"
+        return result
+    except Exception as e:
+        return f"Error recalling memories: {str(e)}"

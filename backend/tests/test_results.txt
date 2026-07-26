@@ -1,0 +1,122 @@
+
+============================================================
+❓ Testing Query: What are my overdue invoices?
+============================================================
+
+✅ Result:
+Agent Used: Synthesizer
+Output:
+**Overdue Invoices Report 📝**
+
+Based on the reports received from the financial agents, here's a summary of the overdue invoices:
+
+**Report 1:** 📝
+Unfortunately, the first report from CollectionsAgent contains an error and is not usable:
+```python
+CollectionsAgent REPORT ---
+Error fetching overdue invoices: unsupported format string passed to NoneType.__format__
+```
+
+**Report 2:** 📝
+No report received from CollectionsAgent.
+
+**Report 3:** 📝
+No report received from CollectionsAgent.
+
+**Actual Data:** 📊
+However, let's try to extract available information from the reports. We can see that there's a mention of the name "Ananya" with a date and an amount. Unfortunately, this is not a complete report and doesn't provide the necessary information to determine if the invoice is overdue.
+
+**Conclusion:** 🤔
+Unfortunately, due to the errors and incomplete reports, we are unable to provide a comprehensive list of overdue invoices. We recommend reviewing and correcting the reports to ensure accurate and timely information.
+
+**Top 3 Actions:**
+
+1. **Fix Error Reports 🔄**: Review and correct the errors in the reports to ensure accurate and timely information.
+2. **Get Complete Reports 📝**: Request that the CollectionsAgent provides complete and accurate reports on overdue invoices.
+3. **Verify Account Information 📊**: Verify the account information and ensure that all relevant data is available for accurate analysis.
+
+============================================================
+❓ Testing Query: Who should I pay first?
+============================================================
+
+✅ Result:
+Agent Used: Synthesizer
+Output:
+**SmartFlow Supervisor Report**
+=====================================
+
+**Cash Flow Forecast**
+------------------------
+
+Based on the **PaymentsAgent REPORT**, we have a cash flow forecast using the prophet method. Here are the key points:
+
+- **Day 7 (2026-03-28)**: ₹132,854 (Range: ₹-657,671 - ₹1,007,279)
+- **Day 14 (2026-04-04)**: ₹-209,478 (Range: ₹-996,524 - ₹620,457)
+- **Day 21 (2026-04-11)**: ₹-17,000 (Range: ₹-864,624 - ₹890,037)
+- **Day 30 (2026-04-20)**: ₹181,053 (Range: ₹-701,814 - ₹945,150)
+
+**Net Cash Flow**: ₹-953,574
+
+**⚠️ Alerts:**
+- [HIGH] Cash balance expected to drop to ₹-1,557,175 around day 15
+
+**GST Agent Report**
+----------------------
+
+The **GSTAgent REPORT** shows that the GSTR-1 return for the period '2025-02' has been filed on '2026-02-25'. Here are the key points:
+
+- **Period**: '2025-02'
+- **Return Type**: GSTR-1
+- **Filing Status**: Filed
+- **Filed On**: '2026-02-25'
+- **Tax Summary**:
+  - **Output Tax**: ₹270,569.0
+  - **Input Credit**: ₹0
+  - **Net Payable**: ₹270,569.0
+
+**Collections Agent Report**
+---------------------------
+
+Unfortunately, the **CollectionsAgent REPORT** contains an error. The report states: "Error fetching overdue invoices: unsupported format string passed to NoneType.__format__". We are unable to retrieve any information from this report.
+
+**Top 3 Actions**
+------------------
+
+1. **Pay GST**: As indicated in the GSTAgent REPORT, you have a net payable of ₹270,569.0 for the period '2025-02'. It is essential to pay this amount to avoid any penalties or interest.
+2. **Monitor Cash Flow**: Keep a close eye on your cash flow, especially around day 15 when the cash balance is expected to drop to ₹-1,557,175. You may need to make adjustments to your payment schedule to avoid any cash flow issues.
+3. **Resolve Collections Agent Report Error**: Investigate and resolve the error in the CollectionsAgent REPORT to ensure that you are receiving accurate information about overdue invoices.
+
+============================================================
+❓ Testing Query: How is my business health?
+============================================================
+
+✅ Result:
+Agent Used: Synthesizer
+Output:
+**Business Health Report** 📊
+
+Unfortunately, we have received incomplete reports from our DecisionAdvisorAgent. Let's analyze the available data:
+
+**Report 1:**
+No report available. This report is empty.
+
+**Report 2:**
+```markdown
+--- DecisionAdvisorAgent REPORT ---
+DecisionAdvisorAgent (mock mode) is enabled. No tool outputs available for this agent.
+```
+This report is also empty and in mock mode, indicating that no actual data is available.
+
+**Report 3:**
+Unfortunately, there are no reports available for analysis.
+
+**Conclusion:**
+Due to the lack of data, we are unable to provide a comprehensive business health report. We recommend that you:
+
+**Top 3 Actions** 🚀
+
+1. **Provide complete reports**: Ensure that all DecisionAdvisorAgent reports are accurate and contain actual data.
+2. **Enable data collection**: Verify that data collection is enabled for all relevant agents and tools.
+3. **Schedule a data review**: Schedule a review with our team to assess your business health and provide recommendations for improvement.
+
+Please provide the required data to enable us to provide a more detailed report. We appreciate your cooperation. 📈

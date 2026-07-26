@@ -74,21 +74,21 @@ const formatINR = (amount) => {
 }
 
 // Sidebar Navigation
-function Sidebar({ activeTab, setActiveTab, onLogout }) {
-    const navItems = [
+function Sidebar({ activeTab, setActiveTab, onLogout, accountCategory }) {
+    const defaultNavItems = [
         { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-        // { id: 'integrations', label: 'DPI Stack Hub', icon: Link }, // Hidden for MVP
-        { id: 'gst', label: 'GST Recon', icon: FileText },
-        // { id: 'credit', label: 'Credit Market', icon: Landmark }, // Hidden for MVP
-        // { id: 'supplychain', label: 'Supply Chain', icon: Briefcase }, // Hidden for MVP
-        { id: 'reports', label: 'Reports', icon: BarChart3 },
         { id: 'models', label: 'Models', icon: Activity },
         { id: 'upload', label: 'Upload Data', icon: Upload },
         { id: 'agents', label: 'Copilot', icon: MessageSquare },
         { id: 'workforce', label: 'Agent Workforce', icon: Brain },
+        { id: 'memory', label: 'Agent Memory', icon: Search },
+        { id: 'playbooks', label: 'Playbooks', icon: Briefcase },
         { id: 'profile', label: 'Profile & Settings', icon: User },
     ]
 
+    const navItems = accountCategory === 'PERSONAL' 
+        ? defaultNavItems.filter(item => !['gst', 'credit', 'supplychain'].includes(item.id))
+        : defaultNavItems
 
     return (
         <aside className="sidebar">
@@ -613,7 +613,9 @@ function InvoicesTable({ entityId }) {
         })
             .then(res => res.json())
             .then(data => {
-                setInvoices(data.items || [])
+                // Backend returns a list; older UI code expected { items: [] }.
+                const items = Array.isArray(data) ? data : (data.items || [])
+                setInvoices(items)
                 setLoading(false)
             })
             .catch(err => setLoading(false))
@@ -640,10 +642,10 @@ function InvoicesTable({ entityId }) {
                     <tbody>
                         {invoices.map(inv => (
                             <tr key={inv.id} style={{ borderBottom: '1px solid rgba(255,255,255,0.05)' }}>
-                                <td style={{ padding: 12 }}>{inv.number}</td>
-                                <td style={{ padding: 12 }}>{new Date(inv.date).toLocaleDateString()}</td>
-                                <td style={{ padding: 12 }}>{inv.type.toUpperCase()}</td>
-                                <td style={{ padding: 12, textAlign: 'right' }}>{formatINR(inv.amount)}</td>
+                                <td style={{ padding: 12 }}>{inv.invoice_number}</td>
+                                <td style={{ padding: 12 }}>{inv.invoice_date ? new Date(inv.invoice_date).toLocaleDateString() : '-'}</td>
+                                <td style={{ padding: 12 }}>{(inv.invoice_type || '').toUpperCase()}</td>
+                                <td style={{ padding: 12, textAlign: 'right' }}>{formatINR(inv.total_amount ?? inv.amount ?? 0)}</td>
                                 <td style={{ padding: 12 }}>
                                     <span style={{
                                         padding: '2px 8px', borderRadius: 12,
@@ -693,7 +695,7 @@ function RecentActivity({ entityId }) {
                     <div key={a.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 13, borderBottom: '1px solid var(--glass-border)', paddingBottom: 8 }}>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                             <span>{a.description}</span>
-                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(a.date).toLocaleDateString()} • {a.source}</span>
+                            <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>{new Date(a.date).toLocaleDateString()} • {a.source_type}</span>
                         </div>
                         <span style={{ fontWeight: 600, color: a.amount > 0 ? 'var(--success)' : 'var(--text-primary)' }}>
                             {formatINR(a.amount)}
@@ -762,8 +764,13 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
 
             if (response.ok) {
                 const data = await response.json()
-                const output = data.output || data.fallback_output || 'Request processed.'
-                setMessages(prev => [...prev, { role: 'agent', content: output }])
+                if (data.success) {
+                    const output = data.output || data.fallback_output || 'Request processed.'
+                    const reports = data.reports || []
+                    setMessages(prev => [...prev, { role: 'agent', content: output, reports }])
+                } else {
+                    setMessages(prev => [...prev, { role: 'agent', content: data.error || 'Request failed.' }])
+                }
             } else {
                 setMessages(prev => [...prev, { role: 'agent', content: 'Error processing request.' }])
             }
@@ -821,7 +828,8 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
             zIndex: 1000,
             display: 'flex',
             flexDirection: 'column',
-            boxShadow: '-4px 0 20px rgba(0,0,0,0.2)'
+            boxShadow: '-4px 0 20px rgba(0,0,0,0.2)',
+            overflow: 'hidden'
         }}>
             <div style={{ padding: 16, borderBottom: '1px solid var(--glass-border)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <span style={{ fontWeight: 600, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -832,19 +840,63 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
                 </button>
             </div>
 
-            <div style={{ flex: 1, overflowY: 'auto', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
+            <div style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', padding: 16, display: 'flex', flexDirection: 'column', gap: 12 }}>
                 {messages.map((msg, idx) => (
-                    <div key={idx} className={`chat-message ${msg.role}`} style={{ fontSize: 13 }}>
-                        {msg.content}
+                    <div key={idx} className={`chat-message ${msg.role}`} style={{ fontSize: 13, borderBottom: '1px solid var(--glass-border)', paddingBottom: 12 }}>
+                        {msg.reports && msg.reports.length > 0 && (
+                            <div style={{ marginBottom: 10 }}>
+                                {msg.reports.map((report, rIdx) => (
+                                    <details key={rIdx} style={{ fontSize: 11, color: 'var(--text-muted)', marginBottom: 4 }}>
+                                        <summary style={{ cursor: 'pointer', fontWeight: 600, color: 'var(--accent-primary)' }}>
+                                            🛠️ Agent Insight {rIdx + 1}
+                                        </summary>
+                                        <div style={{ 
+                                            padding: 8, 
+                                            background: 'rgba(255,255,255,0.03)', 
+                                            borderRadius: 4, 
+                                            marginTop: 4,
+                                            whiteSpace: 'pre-wrap',
+                                            wordBreak: 'break-word'
+                                        }}>
+                                            {report}
+                                        </div>
+                                    </details>
+                                ))}
+                            </div>
+                        )}
+                        <div style={{ whiteSpace: 'pre-wrap', wordBreak: 'break-word', lineHeight: '1.4' }}>{msg.content}</div>
                     </div>
                 ))}
-                {loading && <div className="chat-message agent">Processing...</div>}
+
+                {loading && (
+                    <div className="chat-message agent" style={{ display: 'flex', alignItems: 'center', gap: 8, color: 'var(--accent-primary)' }}>
+                        <RefreshCw size={14} className="animate-spin" />
+                        <span>Thinking...</span>
+                    </div>
+                )}
             </div>
 
-            <div style={{ padding: 16, borderTop: '1px solid var(--glass-border)' }}>
-                <div className="chat-input" style={{ marginBottom: 0 }}>
+            <div style={{ padding: 16, borderTop: '1px solid var(--glass-border)', background: 'var(--bg-card)' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    background: 'var(--bg-secondary)', 
+                    border: '1px solid var(--glass-border)', 
+                    borderRadius: 24, 
+                    padding: '8px 16px',
+                    gap: 8
+                 }}>
                     <input
                         type="text"
+                        style={{ 
+                            flex: 1, 
+                            border: 'none', 
+                            background: 'transparent', 
+                            color: 'var(--text-primary)', 
+                            outline: 'none', 
+                            fontSize: 14,
+                            width: '100%' 
+                        }}
                         value={input}
                         onChange={e => setInput(e.target.value)}
                         onKeyDown={e => e.key === 'Enter' && sendMessage()}
@@ -852,7 +904,25 @@ function Copilot({ entityId, isOpen, toggle, initialQuery }) {
                         disabled={!entityId}
                         autoFocus
                     />
-                    <button onClick={sendMessage} disabled={loading || !entityId}><Send size={16} /></button>
+                    <button 
+                        onClick={() => sendMessage()} 
+                        disabled={loading || !entityId} 
+                        style={{ 
+                            background: 'var(--accent-primary)', 
+                            border: 'none', 
+                            borderRadius: '50%', 
+                            width: 32, 
+                            height: 32, 
+                            display: 'flex', 
+                            alignItems: 'center', 
+                            justifyContent: 'center', 
+                            color: 'white',
+                            cursor: (loading || !entityId) ? 'not-allowed' : 'pointer',
+                            flexShrink: 0,
+                            padding: 0
+                        }}>
+                        <Send size={14} />
+                    </button>
                 </div>
             </div>
         </div>
@@ -864,7 +934,7 @@ import OnboardingWizard from './components/OnboardingWizard'
 import AIInsightsPanel from './components/AIInsightsPanel'
 import LenderProfile from './pages/LenderProfile'
 import { CreditScoreGauge, BurnTrendChart, DSOChart, CashVelocityChart, RiskAlerts } from './components/AdvancedCharts'
-import ScenarioSimulator from './components/ScenarioSimulator'
+import ScenarioSandbox from './components/ScenarioSandbox'
 import CollectionsPlan from './components/CollectionsPlan'
 import SaasDashboard from './components/SaasDashboard'
 import PaymentsSchedule from './components/PaymentsSchedule'
@@ -881,6 +951,8 @@ import {
 } from './components/ZentraDashboard'
 import DarkForecastChart from './components/DarkForecastChart'
 import CashflowHeatmap from './components/CashflowHeatmap'
+import MemoryManager from './components/MemoryManager'
+import PlaybookManager from './components/PlaybookManager'
 
 // Main App Controller
 export default function App() {
@@ -1038,7 +1110,12 @@ export default function App() {
         <div className="dashboard">
             {showOnboarding && <OnboardingWizard entityId={currentEntity?.id} onComplete={handleOnboardingComplete} />}
 
-            <Sidebar activeTab={activeTab} setActiveTab={setActiveTab} onLogout={logout} />
+            <Sidebar 
+                activeTab={activeTab} 
+                setActiveTab={setActiveTab} 
+                onLogout={logout} 
+                accountCategory={currentEntity?.account_category || 'BUSINESS'}
+            />
 
             <main className="main-content" style={{ paddingBottom: 80 }}>
                 {/* Top Header Row with Global Search */}
@@ -1089,7 +1166,11 @@ export default function App() {
 
                 {activeTab === 'dashboard' && (
                     <>
-                        <SaasDashboard openCopilot={openCopilot} />
+                        <SaasDashboard
+                            openCopilot={openCopilot}
+                            accountCategory={currentEntity?.account_category || 'BUSINESS'}
+                            entityId={currentEntity?.id}
+                        />
                         <div style={{ padding: '0 24px 24px 24px' }}>
                             <CashflowHeatmap />
                         </div>
@@ -1113,13 +1194,17 @@ export default function App() {
                     )
                 }
 
-                {activeTab === 'models' && <ScenarioSimulator entityId={currentEntity?.id} />}
+                {activeTab === 'models' && <ScenarioSandbox entityId={currentEntity?.id} />}
 
                 {activeTab === 'upload' && <DataUpload entityId={currentEntity?.id} onUploadSuccess={loadOSData} />}
 
                 {activeTab === 'profile' && <Profile />}
 
-                {activeTab === 'workforce' && <AgentLogPage />}
+                {activeTab === 'workforce' && <AgentLogPage entityId={currentEntity?.id} />}
+
+                {activeTab === 'memory' && <MemoryManager entityId={currentEntity?.id} />}
+
+                {activeTab === 'playbooks' && <PlaybookManager entityId={currentEntity?.id} />}
 
                 {
                     activeTab === 'agents' && (

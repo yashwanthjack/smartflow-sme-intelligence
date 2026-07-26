@@ -49,7 +49,7 @@ export default function ScenarioSimulator({ entityId }) {
         setError(null)
 
         try {
-            const res = await fetch(`${API_BASE}/simulate/`, {
+            const res = await fetch(`${API_BASE}/simulate`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`,
@@ -249,9 +249,8 @@ export default function ScenarioSimulator({ entityId }) {
                         <div style={{ fontSize: 14, lineHeight: 1.5 }}>{result.ai_recommendation}</div>
                     </div>
 
-                    {/* 12-Month Projection Chart */}
-                    <div style={{ height: 280 }}>
-                        <ResponsiveContainer>
+                    <div style={{ height: 280, width: '100%' }}>
+                        <ResponsiveContainer width="100%" height="100%">
                             <ComposedChart data={result.projection_series}>
                                 <defs>
                                     <linearGradient id="balanceGradient" x1="0" y1="0" x2="0" y2="1">

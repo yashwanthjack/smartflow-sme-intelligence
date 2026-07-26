@@ -5,7 +5,7 @@ from sqlalchemy import Column, Integer, String, Float, Date, DateTime, Boolean, 
 from app.db.database import Base
 class CashFlow(Base):
     __tablename__ = "cashflows"
-    id = Column(Integer, primary_key=True,default=lambda: str(uuid.uuid4()))
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
     case_id=Column(String,ForeignKey("cases.id"))
     transaction_date=Column(Date,nullable=False)
     description = Column(String)
