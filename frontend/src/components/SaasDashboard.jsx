@@ -112,7 +112,11 @@ export default function SaasDashboard({ openCopilot, accountCategory = 'BUSINESS
                     />
                     <MetricCard
                         title="Runway"
-                        value={metrics?.runway_months ? `${metrics.runway_months.toFixed(1)} Months` : '0 Months'}
+                        value={
+                            metrics?.runway_months 
+                            ? (metrics.runway_months > 12 ? '> 12 Months' : `${metrics.runway_months.toFixed(1)} Months`) 
+                            : '0 Months'
+                        }
                         change={0}
                         prefix=""
                     />

@@ -67,7 +67,7 @@ graph TD
     subgraph Infrastructure [Data & Compute]
         DB[(PostgreSQL / SQLite)]:::infra
         Vector[(ChromaDB Vector Store)]:::infra
-        LLM[Gemini Pro LLM API]:::infra
+        LLM[Gemini 3.5 Flash Lite API]:::infra
     end
 
     subgraph Ecosystem [External Systems]
@@ -120,4 +120,4 @@ graph TD
 
 ### 4. Infrastructure
 - **Databases**: Relational storage for transactions; Vector store for RAG.
-- **LLM**: Powered by Google Gemini Pro for reasoning and extraction.
+- **LLM**: Powered by Google Gemini 3.5 Flash Lite for reasoning and extraction.

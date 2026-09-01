@@ -3,7 +3,7 @@ from typing import Annotated, List, Literal, Optional, Dict, Any
 from datetime import datetime
 from pydantic import BaseModel, Field
 
-from langchain_groq import ChatGroq
+from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.messages import HumanMessage, SystemMessage, AIMessage, ToolMessage
 from langchain_core.tools import tool, InjectedToolCallId
 from langchain_core.runnables import RunnableConfig
@@ -15,7 +15,7 @@ from app.agents.supervisor_agent import classify_intent
 
 from app.agents.llm import get_llm
 from app.agents.collections_agent import CollectionsAgent
-from app.agents.payments_agent import PaymentsAgent
+from app.agents.payments_agent import PaymentsAgent 
 from app.agents.gst_agent import GSTAgent
 from app.agents.credit_advisory_agent import CreditAdvisoryAgent
 from app.agents.decision_advisor_agent import DecisionAdvisorAgent
@@ -50,6 +50,7 @@ def handoff_to_agent(
         "active_agent": agent_name,
         "task_description": task_description,
         "messages": [ToolMessage(
+            id=f"handoff_{tool_call_id}",
             name=f"handoff_to_{agent_name}",
             content=f"Delegated task to {agent_name}: {task_description}",
             tool_call_id=tool_call_id,
@@ -94,15 +95,31 @@ def create_worker_node(agent_class, name):
         finally:
             db.close()
 
-        # Create a clean Human message for the supervisor to see the result
-        ai_message = HumanMessage(
-            content=f"--- {name} REPORT ---\n{report}\n\nPlease synthesize the above report and provide the final answer to the user.",
-        )
-        
-        return {
-            "messages": [ai_message],
-            "agent_reports": [report]
-        }
+        # Find the last tool call ID to overwrite the handoff ToolMessage
+        last_tool_call_id = None
+        for msg in reversed(state.messages):
+            if isinstance(msg, ToolMessage) and msg.name == f"handoff_to_{name}":
+                last_tool_call_id = msg.tool_call_id
+                break
+                
+        # Overwrite the ToolMessage with the actual report to satisfy Gemini's strict role sequence
+        if last_tool_call_id:
+            tool_message = ToolMessage(
+                id=f"handoff_{last_tool_call_id}",
+                name=f"handoff_to_{name}",
+                content=f"--- {name} REPORT ---\n{report}\n\nPlease synthesize the above report and provide the final answer to the user.",
+                tool_call_id=last_tool_call_id
+            )
+            return {
+                "messages": [tool_message],
+                "agent_reports": [report]
+            }
+        else:
+            # Fallback if not found
+            return {
+                "messages": [HumanMessage(content=f"--- {name} REPORT ---\n{report}")],
+                "agent_reports": [report]
+            }
     return worker_node
 
 # Supervisor node
@@ -113,6 +130,9 @@ async def supervisor_node(state: AgentState):
     # Bind the handoff, swarm, and memory tools
     tools = [handoff_to_agent, spin_up_agent, create_swarm_team, save_memory, recall_memories]
     llm_with_tools = llm.bind_tools(tools)
+    
+    # Check if recall_memories was already called in this conversation
+    has_recalled = any(getattr(m, 'name', '') == 'recall_memories' for m in state.messages if hasattr(m, 'name'))
     
     system_prompt = f"""You are the SmartFlow Executive Supervisor.
 Current Date: {datetime.now().strftime("%Y-%m-%d")}
@@ -132,7 +152,7 @@ MEMORY SYSTEM:
 - Always respect recalled memories in your responses (e.g. if a memory says "use polite tone for ABC Corp", honor that).
 
 RULES:
-1. FIRST call 'recall_memories' with entity_id and relevant keywords from the user's query.
+{"1. You have already recalled memories for this conversation. DO NOT call 'recall_memories' again." if has_recalled else "1. FIRST call 'recall_memories' with entity_id and relevant keywords from the user's query."}
 2. Use 'handoff_to_agent' to route to predefined LangGraph agents.
 3. CRITICAL ROUTING RULE: If the user asks about specific/historical payments, who paid what, largest transactions, or spending, you MUST route to PaymentsAgent. Do not route to DecisionAdvisorAgent.
 4. GREETING RULE: If the user just says a greeting (like "hello", "hi", "hey"), DO NOT route to any agent! Just reply politely.
@@ -142,12 +162,17 @@ RULES:
 8. If you have enough information, provide a final synthesized answer directly.
 9. DO NOT hallucinate. Use only data from agent reports.
 10. If no agents are needed or task is complete, answer without calling tools.
-11. CRITICAL FOR TOOLS: When calling a tool (like handoff), DO NOT output any conversational text or explanation whatsoever. Your response must consist ONLY of the tool call format. Do not say "I will now do X".
 """
-    
-    response = await llm_with_tools.ainvoke([
-        SystemMessage(content=system_prompt)
-    ] + state.messages)
+    # To avoid Gemini's strict conversational role limitations (ToolMessage/AIMessage sequences),
+    # if we have an agent report, we just ask the LLM to synthesize it directly using a single HumanMessage.
+    if state.agent_reports:
+        latest_report = state.agent_reports[-1]
+        synthesis_prompt = f"User Query: {state.messages[0].content}\n\nAgent Report:\n{latest_report}\n\nPlease synthesize this report into a final answer for the user. Do not call any tools."
+        messages_to_send = [SystemMessage(content=system_prompt), HumanMessage(content=synthesis_prompt)]
+    else:
+        messages_to_send = [SystemMessage(content=system_prompt)] + state.messages
+        
+    response = await llm_with_tools.ainvoke(messages_to_send)
     
     # Log supervisor action
     db = SessionLocal()
@@ -158,7 +183,7 @@ RULES:
             event_type="SYSTEM",
             action="Supervisor decision",
             severity="INFO",
-            reasoning=response.content if hasattr(response, 'content') else str(response),
+            reasoning=str(response.content) if hasattr(response, 'content') else str(response),
             trace_id=state.entity_id
         )
         db.add(log)
@@ -250,7 +275,14 @@ async def run_langgraph_supervisor(entity_id: str, query: str):
         }
         
     last_msg = messages[-1]
-    output = last_msg.content if hasattr(last_msg, 'content') else str(last_msg)
+    raw_content = last_msg.content if hasattr(last_msg, 'content') else str(last_msg)
+    
+    # Handle Gemini's list of content blocks format
+    if isinstance(raw_content, list):
+        text_blocks = [block.get('text', '') if isinstance(block, dict) else str(block) for block in raw_content]
+        output = "\n".join(text_blocks)
+    else:
+        output = str(raw_content)
     
     return {
         "agent_used": "langgraph_supervisor",

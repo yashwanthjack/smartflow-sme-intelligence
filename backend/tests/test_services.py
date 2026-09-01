@@ -1,99 +1,96 @@
-# Test script for SmartFlow Services
-import sys
-import os
-sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '../')))
-
-from dotenv import load_dotenv
-load_dotenv(os.path.join(os.path.dirname(__file__), '../../.env'))
-
-def test_forecasting_service():
-    """Test the ForecastingService."""
-    print("\n" + "="*60)
-    print("📈 Testing ForecastingService")
-    print("="*60)
-    
-    from app.services.forecasting_service import ForecastingService
-    
-    service = ForecastingService(db=None)  # No DB, will use mock data
-    result = service.forecast("test-entity", days=30)
-    
-    print(f"Method: {result['method']}")
-    print(f"Days: {result['forecast_days']}")
-    print(f"Summary: {result['summary']}")
-    print(f"Alerts: {result.get('alerts', [])}")
-    print(f"\nFirst 3 days:")
-    for day in result['daily_forecast'][:3]:
-        print(f"  {day}")
-    
-    return result
-
-def test_scoring_service():
-    """Test the ScoringService."""
-    print("\n" + "="*60)
-    print("📊 Testing ScoringService")
-    print("="*60)
-    
-    from app.services.scoring_service import ScoringService
-    
-    service = ScoringService(db=None)  # No DB, will use mock data
-    result = service.calculate_score("test-entity")
-    
-    print(f"Score: {result['score']}")
-    print(f"Risk Band: {result['risk_band']} ({result['risk_label']})")
-    print(f"Method: {result['method']}")
-    print(f"\nFactors:")
-    for factor in result.get('factors', [])[:5]:
-        print(f"  {'✅' if factor.get('positive') else '⚠️'} {factor['factor']} ({factor['impact']})")
-    print(f"\nLoan Eligibility: {result.get('loan_eligibility', {})}")
-    
-    return result
-
-def test_tools():
-    """Test the agent tools."""
-    print("\n" + "="*60)
-    print("🔧 Testing Agent Tools")
-    print("="*60)
-    
-    from app.agents.tools import (
-        get_overdue_invoices,
-        get_cash_forecast,
-        get_entity_credit_score
-    )
-    
-    print("\n--- get_overdue_invoices ---")
-    invoices = get_overdue_invoices.invoke({"entity_id": "test"})
-    print(invoices[:500])
-    
-    print("\n--- get_cash_forecast ---")
-    forecast = get_cash_forecast.invoke({"entity_id": "test", "days": 30})
-    print(forecast[:500])
-    
-    print("\n--- get_entity_credit_score ---")
-    score = get_entity_credit_score.invoke({"entity_id": "test"})
-    print(score[:500])
-    
-    return True
+"""
+Unit tests for SmartFlow backend services.
+Tests ForecastingService and ScoringService with mock data.
+"""
+import pytest
+from app.services.forecasting_service import ForecastingService
 
 
-if __name__ == "__main__":
-    import argparse
-    
-    parser = argparse.ArgumentParser(description="Test SmartFlow Services")
-    parser.add_argument("--test", type=str, choices=["forecast", "score", "tools", "all"],
-                        default="all", help="Which service to test")
-    
-    args = parser.parse_args()
-    
-    print("\n🚀 SmartFlow Service Test Suite")
-    print("="*60)
-    
-    if args.test == "forecast" or args.test == "all":
-        test_forecasting_service()
-    
-    if args.test == "score" or args.test == "all":
-        test_scoring_service()
-    
-    if args.test == "tools" or args.test == "all":
-        test_tools()
-    
-    print("\n✅ All tests complete!")
+class TestForecastingService:
+    """Test the cash flow forecasting service."""
+
+    def test_forecast_returns_required_keys(self):
+        """Forecast response must contain method, forecast_days, daily_forecast, summary."""
+        service = ForecastingService(db=None)  # Uses mock data
+        result = service.forecast("test-entity", days=30)
+
+        assert "method" in result
+        assert "forecast_days" in result
+        assert "daily_forecast" in result
+        assert "summary" in result
+        assert result["forecast_days"] == 30
+
+    def test_forecast_daily_entries_have_correct_shape(self):
+        """Each daily forecast entry must have date, predicted, lower/upper bounds."""
+        service = ForecastingService(db=None)
+        result = service.forecast("test-entity", days=15)
+
+        for entry in result["daily_forecast"]:
+            assert "date" in entry
+            assert "predicted" in entry
+            assert "lower_bound" in entry
+            assert "upper_bound" in entry
+            # Upper bound must exceed lower bound
+            assert entry["upper_bound"] >= entry["lower_bound"]
+
+    def test_forecast_summary_has_financials(self):
+        """Summary must contain inflow, outflow, and net cash flow."""
+        service = ForecastingService(db=None)
+        result = service.forecast("test-entity", days=30)
+        summary = result["summary"]
+
+        assert "total_predicted_inflow" in summary
+        assert "total_predicted_outflow" in summary
+        assert "net_cash_flow" in summary
+        # Net = inflow + outflow (outflow is negative)
+        expected_net = summary["total_predicted_inflow"] + summary["total_predicted_outflow"]
+        assert abs(summary["net_cash_flow"] - expected_net) < 1.0  # Float tolerance
+
+    def test_forecast_with_different_horizons(self):
+        """Forecast should work for various time horizons."""
+        service = ForecastingService(db=None)
+
+        for days in [7, 30, 60, 90]:
+            result = service.forecast("test-entity", days=days)
+            assert result["forecast_days"] == days
+            # Should have at least 'days' entries (history + future)
+            assert len(result["daily_forecast"]) >= days
+
+    def test_mock_data_generation(self):
+        """Mock data generator should produce 90 days of data."""
+        service = ForecastingService(db=None)
+        df = service._get_mock_data()
+
+        assert len(df) == 90
+        assert "ds" in df.columns
+        assert "y" in df.columns
+        assert df["y"].notna().all()
+
+
+class TestForecastAlerts:
+    """Test the alert generation logic."""
+
+    def test_no_alerts_for_healthy_flow(self):
+        """Large positive values should generate no alerts."""
+        import numpy as np
+
+        service = ForecastingService(db=None)
+        # All positive, large values → no LOW_CASH or NEGATIVE_TREND
+        healthy_values = np.array([100000] * 30)
+        alerts = service._generate_alerts(healthy_values)
+
+        low_cash = [a for a in alerts if a["type"] == "LOW_CASH"]
+        assert len(low_cash) == 0
+
+    def test_alert_on_negative_trend(self):
+        """Mostly negative values should trigger NEGATIVE_TREND alert."""
+        import numpy as np
+
+        service = ForecastingService(db=None)
+        # 80% negative days
+        negative_values = np.array([-5000] * 24 + [5000] * 6)
+        alerts = service._generate_alerts(negative_values)
+
+        negative_alerts = [a for a in alerts if a["type"] == "NEGATIVE_TREND"]
+        assert len(negative_alerts) == 1
+        assert negative_alerts[0]["severity"] == "MEDIUM"

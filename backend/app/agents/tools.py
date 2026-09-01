@@ -12,6 +12,21 @@ from contextvars import ContextVar
 # Database session helper (async-safe using ContextVar)
 _db_session_var: ContextVar[Optional[Session]] = ContextVar("_db_session", default=None)
 
+
+from functools import wraps
+from app.db.database import SessionLocal
+
+def safe_db_session(func):
+    @wraps(func)
+    def wrapper(*args, **kwargs):
+        db = SessionLocal()
+        _db_session_var.set(db)
+        try:
+            return func(*args, **kwargs)
+        finally:
+            db.close()
+    return wrapper
+
 def set_db_session(db: Session):
     """Set the database session for tools to use."""
     _db_session_var.set(db)
@@ -26,6 +41,7 @@ def get_db_session() -> Optional[Session]:
 # ============================================================================
 
 @tool
+@safe_db_session
 def get_overdue_invoices(entity_id: str) -> str:
     """Get list of overdue invoices for an entity.
     
@@ -78,6 +94,7 @@ def get_overdue_invoices(entity_id: str) -> str:
 
 
 @tool
+@safe_db_session
 def get_customer_risk_score(customer_name: str) -> str:
     """Get credit risk score for a specific customer/counterparty.
     
@@ -114,6 +131,7 @@ def get_customer_risk_score(customer_name: str) -> str:
 
 
 @tool
+@safe_db_session
 def draft_payment_reminder(customer_name: str, amount: float, days_overdue: int, tone: str = "polite") -> str:
     """Draft a payment reminder email/message for a customer.
     
@@ -188,6 +206,7 @@ SmartFlow Team
 # ============================================================================
 
 @tool
+@safe_db_session
 def get_cash_forecast(entity_id: str, days: int = 30) -> str:
     """Get cash flow forecast for the next N days using Prophet model.
     
@@ -232,6 +251,7 @@ def get_cash_forecast(entity_id: str, days: int = 30) -> str:
 
 
 @tool
+@safe_db_session
 def get_pending_payables(entity_id: str) -> str:
     """Get list of pending vendor payments/payables.
     
@@ -288,6 +308,7 @@ def get_pending_payables(entity_id: str) -> str:
 
 
 @tool
+@safe_db_session
 def schedule_payment(vendor_name: str, amount: float, pay_date: str) -> str:
     """Schedule a payment to a vendor for a specific date.
     
@@ -316,6 +337,7 @@ def schedule_payment(vendor_name: str, amount: float, pay_date: str) -> str:
 # ============================================================================
 
 @tool
+@safe_db_session
 def analyze_ledger_spending(entity_id: str) -> str:
     """Analyze historical spending from the ledger to find trends.
     Useful for answering 'highest spent month', 'spending trends', etc.
@@ -402,6 +424,7 @@ def analyze_ledger_spending(entity_id: str) -> str:
 
 
 @tool
+@safe_db_session
 def query_ledger_entries(entity_id: str, category: Optional[str] = None, search_term: Optional[str] = None, limit: int = 5) -> str:
     """Search for specific ledger entries by category, keyword, or just list recent ones.
     
@@ -443,6 +466,7 @@ def query_ledger_entries(entity_id: str, category: Optional[str] = None, search_
         return f"Error querying ledger: {str(e)}"
 
 @tool
+@safe_db_session
 def get_top_spending_recipients(entity_id: str, limit: int = 5) -> str:
     """Find out to whom the business spent the most money (Top vendors / payees).
     
@@ -483,6 +507,7 @@ def get_top_spending_recipients(entity_id: str, limit: int = 5) -> str:
         return f"Error analyzing top spending: {str(e)}"
 
 @tool
+@safe_db_session
 def get_highest_transaction(entity_id: str) -> str:
     """Get the single highest-value transaction (in absolute terms) in the ledger."""
     db = get_db_session()
@@ -522,6 +547,7 @@ def get_highest_transaction(entity_id: str) -> str:
 
 
 @tool
+@safe_db_session
 def get_highest_received_payment(entity_id: str) -> str:
     """Get the highest payment received and from which counterparty.
     
@@ -565,6 +591,7 @@ def get_highest_received_payment(entity_id: str) -> str:
     return "Database connection unavailable."
 
 @tool
+@safe_db_session
 def check_gst_compliance(entity_id: str) -> dict:
     """Check GST filing status, ITC availability, and compliance issues.
     
@@ -653,6 +680,7 @@ def get_gst_reconciliation(entity_id: str) -> dict:
 # ============================================================================
 
 @tool
+@safe_db_session
 def get_entity_credit_score(entity_id: str) -> str:
     """Get overall credit score and risk assessment for the entity.
     
@@ -694,6 +722,7 @@ def get_entity_credit_score(entity_id: str) -> str:
 
 
 @tool
+@safe_db_session
 def calculate_cash_runway(entity_id: str) -> str:
     """Calculate how many days of operating expenses the current cash can cover.
     
@@ -714,10 +743,10 @@ def calculate_cash_runway(entity_id: str) -> str:
     
     if not daily_forecasts:
         # Fallback mock data
-        return """🏃 **Cash Runway Analysis**
+        return f"""🏃 **Cash Runway Analysis**
 
 **Current Position**:
-- Current Cash Balance: ₹4,50,000
+- Current Cash Balance: ₹17,331
 - Average Daily Operating Expense: ₹25,000
 - **Runway**: 18 days
 
@@ -753,7 +782,7 @@ def calculate_cash_runway(entity_id: str) -> str:
     return f"""🏃 **Cash Runway Analysis**
 
 **Current Position**:
-- Estimated Cash Balance: ₹4,50,000
+- Estimated Cash Balance: ₹{initial_balance:,.0f}
 - Forecast Method: {forecast.get('method', 'unknown')}
 - **Runway**: {runway_days} days {status}
 
@@ -770,6 +799,7 @@ def calculate_cash_runway(entity_id: str) -> str:
 # ============================================================================
 
 @tool
+@safe_db_session
 def add_ledger_transaction(entity_id: str, description: str, amount: float, category: str = "Other") -> str:
     """AUTONOMOUS ACTION: Adds a new manual transaction to the ledger.
     Use this to record payments, expenses, or income found during analysis.
@@ -781,9 +811,7 @@ def add_ledger_transaction(entity_id: str, description: str, amount: float, cate
         category: Billing category
     """
     db = get_db_session()
-    if not db:
-        from app.db.database import SessionLocal
-        db = SessionLocal()
+
         
     try:
         from app.models.ledger_entry import LedgerEntry
@@ -808,6 +836,7 @@ def add_ledger_transaction(entity_id: str, description: str, amount: float, cate
         pass
 
 @tool
+@safe_db_session
 def update_invoice_status(invoice_id: str, new_status: str) -> str:
     """AUTONOMOUS ACTION: Updates the status of an invoice.
     Use this after identifying a payment or sending a reminder.
@@ -817,9 +846,7 @@ def update_invoice_status(invoice_id: str, new_status: str) -> str:
         new_status: One of: 'paid', 'reminded', 'disputed', 'pending'
     """
     db = get_db_session()
-    if not db:
-        from app.db.database import SessionLocal
-        db = SessionLocal()
+
         
     try:
         from app.models.invoice import Invoice
@@ -840,6 +867,7 @@ def update_invoice_status(invoice_id: str, new_status: str) -> str:
 # ============================================================================
 
 @tool
+@safe_db_session
 def save_memory(entity_id: str, content: str, category: str = "insight") -> str:
     """Save a persistent memory for this entity. Use this when the user states
     a preference, business rule, or when you discover an important insight.
@@ -855,9 +883,7 @@ def save_memory(entity_id: str, content: str, category: str = "insight") -> str:
         Confirmation that the memory was saved
     """
     db = get_db_session()
-    if not db:
-        from app.db.database import SessionLocal
-        db = SessionLocal()
+
 
     try:
         from app.models.memory import Memory
@@ -876,6 +902,7 @@ def save_memory(entity_id: str, content: str, category: str = "insight") -> str:
 
 
 @tool
+@safe_db_session
 def recall_memories(entity_id: str, query: str = "") -> str:
     """Recall persistent memories for this entity. Use this at the start of
     every conversation to check for relevant user preferences, rules, or
@@ -889,9 +916,7 @@ def recall_memories(entity_id: str, query: str = "") -> str:
         List of relevant memories, or 'No memories found'
     """
     db = get_db_session()
-    if not db:
-        from app.db.database import SessionLocal
-        db = SessionLocal()
+
 
     try:
         from app.models.memory import Memory

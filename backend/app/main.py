@@ -8,15 +8,11 @@ from app.db.database import engine, Base
 
 # Import all models to register with SQLAlchemy (required before create_all)
 from app.models.entity import Entity
-from app.models.account import Account
 from app.models.counterparty import Counterparty
 from app.models.ledger_entry import LedgerEntry
 from app.models.invoice import Invoice
 from app.models.gst_summary import GSTSummary
-from app.models.cash_flow import CashFlow
-from app.models.credit_feature import CreditFeature
 from app.models.audit_log import AuditLog
-from app.models.case import Case
 from app.models.user import User  # Auth model
 from app.models.memory import Memory  # Persistent memory
 
@@ -25,7 +21,10 @@ from app.models.memory import Memory  # Persistent memory
 async def lifespan(app: FastAPI):
     # Startup: Create all tables
     Base.metadata.create_all(bind=engine)
-    print("✅ Database tables created/verified")
+    try:
+        print("Database tables created/verified")
+    except UnicodeEncodeError:
+        pass  # Windows cp1252 can't print emojis
     
     # Start Agent Workforce background simulation
     # Temporarily disabled per user request

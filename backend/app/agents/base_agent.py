@@ -49,32 +49,24 @@ class BaseAgent(ABC):
         This is designed for low-cost/dev environments where calling real LLMs
         is undesirable. Subclasses can override for richer behavior.
         """
-        from app.db.database import SessionLocal
-        from app.agents.tools import set_db_session
+        # Default behavior: call each tool once (when possible) and return outputs.
+        # Tools are LangChain-wrapped callables; they expose `.invoke()` for direct calls.
+        outputs: List[str] = []
+        for t in (self.tools or []):
+            try:
+                name = getattr(t, "name", None) or getattr(t, "__name__", "tool")
+                if name in {"get_overdue_invoices", "get_pending_payables", "get_cash_forecast", "check_gst_compliance", "get_entity_credit_score", "calculate_cash_runway"}:
+                    result = t.invoke({"entity_id": self.entity_id})
+                    outputs.append(str(result))
+            except Exception as e:
+                outputs.append(f"{name} error: {e}")
 
-        db = SessionLocal()
-        set_db_session(db)
-        try:
-            # Default behavior: call each tool once (when possible) and return outputs.
-            # Tools are LangChain-wrapped callables; they expose `.invoke()` for direct calls.
-            outputs: List[str] = []
-            for t in (self.tools or []):
-                try:
-                    name = getattr(t, "name", None) or getattr(t, "__name__", "tool")
-                    if name in {"get_overdue_invoices", "get_pending_payables", "get_cash_forecast", "check_gst_compliance", "get_entity_credit_score", "calculate_cash_runway"}:
-                        result = t.invoke({"entity_id": self.entity_id})
-                        outputs.append(str(result))
-                except Exception as e:
-                    outputs.append(f"{name} error: {e}")
+        if not outputs:
+            outputs = [f"{self.name} (mock mode) is enabled. No tool outputs available for this agent."]
 
-            if not outputs:
-                outputs = [f"{self.name} (mock mode) is enabled. No tool outputs available for this agent."]
-
-            combined = "\n\n".join(outputs)
-            self.log_action("agent_executed", {"mode": "mock", "output": combined[:500]})
-            return {"output": combined, "agent": self.name}
-        finally:
-            db.close()
+        combined = "\n\n".join(outputs)
+        self.log_action("agent_executed", {"mode": "mock", "output": combined[:500]})
+        return {"output": combined, "agent": self.name}
     
     async def run_with_tools(self, task: str) -> Dict[str, Any]:
         """Execute the agent using LangChain tool-calling AgentExecutor.
@@ -82,13 +74,8 @@ class BaseAgent(ABC):
         The LLM autonomously decides which tools to call, reads outputs,
         and generates a final synthesized answer.
         """
-        from app.agents.tools import set_db_session
-        from app.db.database import SessionLocal
         from app.agents.llm import get_llm
         from app.config import settings
-        
-        db = SessionLocal()
-        set_db_session(db)
         
         try:
             # If mock mode is enabled, never call an external LLM.
@@ -139,8 +126,6 @@ class BaseAgent(ABC):
         except Exception as e:
             print(f"⚠️ {self.name} tool-calling failed: {e}")
             return {"output": f"Agent Error: {str(e)}", "agent": self.name}
-        finally:
-            db.close()
     
     def log_action(self, action_type: str, details: Dict[str, Any]):
         """Log an action taken by the agent."""

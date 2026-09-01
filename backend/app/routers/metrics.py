@@ -44,20 +44,20 @@ def get_summary_metrics(
     # 1. Bank Balance (Sum of all transactions)
     balance = db.query(func.sum(LedgerEntry.amount)).filter(LedgerEntry.entity_id == entity_id).scalar() or 0
     
-    # 2. Net Burn (Avg monthly outflow last 6 months)
-    six_months_ago = datetime.now() - timedelta(days=180)
+    thirty_days_ago = datetime.now() - timedelta(days=30)
+
+    # 2. Net Burn (Exact outflow last 30 days)
     total_outflow = db.query(func.sum(LedgerEntry.amount)).filter(
         LedgerEntry.entity_id == entity_id,
         LedgerEntry.amount < 0,
-        LedgerEntry.ledger_date >= six_months_ago
+        LedgerEntry.ledger_date >= thirty_days_ago
     ).scalar() or 0
-    monthly_burn = abs(total_outflow) / 6 if total_outflow else 0
+    monthly_burn = abs(total_outflow)
     
     # 3. Runway
-    runway_months = (balance / monthly_burn) if monthly_burn > 0 else 999
+    runway_months = (balance / monthly_burn) if monthly_burn > 0 else 999.0
     
     # 4. Net Income (Last 30 days)
-    thirty_days_ago = datetime.now() - timedelta(days=30)
     net_income = db.query(func.sum(LedgerEntry.amount)).filter(
         LedgerEntry.entity_id == entity_id,
         LedgerEntry.ledger_date >= thirty_days_ago
@@ -237,25 +237,7 @@ def get_income_tracker(
     
     current_week_income = sum(d["value"] for d in chart_data)
     
-    # MVP Mock Data Fallback if completely empty
-    if current_week_income == 0 and prev_week_income == 0:
-        import random
-        mock_data = []
-        for i, dt in enumerate(daily_income.keys()):
-            val = random.uniform(2000, 15000) if i not in (5, 6) else random.uniform(0, 2000)
-            mock_data.append({
-                "day": days_map[dt.weekday()],
-                "value": round(val, 2),
-                "fullDate": dt.isoformat(),
-                "highlight": False
-            })
-        # Highlight max
-        max_idx = max(range(len(mock_data)), key=lambda idx: mock_data[idx]["value"])
-        mock_data[max_idx]["highlight"] = True
-        return {
-            "weeklyData": mock_data,
-            "changePercent": 14
-        }
+    # No MVP mock data fallback. If 0, it stays 0.
     
     if prev_week_income > 0:
         change_pct = int(((current_week_income - prev_week_income) / prev_week_income) * 100)

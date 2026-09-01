@@ -7,32 +7,35 @@ warnings.filterwarnings("ignore", message=".*Core Pydantic V1 functionality isn'
 
 load_dotenv()
 
-# Groq Configuration (Free API)
-GROQ_API_KEY = os.getenv("GROQ_API_KEY")
-GROQ_MODEL = os.getenv("GROQ_MODEL", "llama-3.1-8b-instant")
+# Gemini Configuration
+GOOGLE_API_KEY = os.getenv("GOOGLE_API_KEY")
+GEMINI_MODEL = os.getenv("GEMINI_MODEL", "gemini-2.5-flash-lite")
+
 
 def get_llm(force_local: bool = False, prefer_vllm: bool = False):
     """
     Initialize LLM for agent use.
-    Uses Groq API (free tier available).
+    Uses Google Gemini API.
     """
-    return _get_groq_llm()
+    return _get_gemini_llm()
 
-def _get_groq_llm():
-    """Get LLM from Groq API."""
-    from langchain_groq import ChatGroq
 
-    if not GROQ_API_KEY:
-        raise ValueError("GROQ_API_KEY not set in .env")
+def _get_gemini_llm():
+    """Get LLM from Google Gemini API."""
+    from langchain_google_genai import ChatGoogleGenerativeAI
 
-    print(f"✅ Using Groq: {GROQ_MODEL}")
-    return ChatGroq(
-        api_key=GROQ_API_KEY,
-        model_name=GROQ_MODEL,
+    if not GOOGLE_API_KEY:
+        raise ValueError("GOOGLE_API_KEY not set in .env")
+
+    print(f"✅ Using Gemini: {GEMINI_MODEL}")
+    return ChatGoogleGenerativeAI(
+        model=GEMINI_MODEL,
+        google_api_key=GOOGLE_API_KEY,
         temperature=0.7,
-        max_tokens=2048
+        max_output_tokens=2048,
     )
 
+
 def get_llm_with_retry():
-    """Get LLM via Groq."""
+    """Get LLM via Gemini."""
     return get_llm()

@@ -3,7 +3,7 @@
 > **The Multi-Agent Financial Operating System for Indian SMEs.**  
 > *Autonomous. Intelligent. Real-time.*
 
-SmartFlow is an AI-Native Financial OS that transforms messy bank statements, invoices, and GST data into a high-performance "Fractional CFO" workforce. Powered by **LangGraph** and **Llama-3.1**, it doesn't just show you charts—it autonomously analyzes, reasons, and executes financial strategies.
+SmartFlow is an AI-Native Financial OS that transforms messy bank statements, invoices, and GST data into a high-performance "Fractional CFO" workforce. Powered by **LangChain** and **Google Gemini 3.5 Flash Lite**, it doesn't just show you charts—it autonomously analyzes, reasons, and executes financial strategies.
 
 ---
 
@@ -17,6 +17,14 @@ SmartFlow utilizes a **Hierarchical Multi-Agent Architecture** to process comple
 -   **GST Compliance Agent**: Your tax expert. Reconciles GSTR-1/3B filings and ensures Input Tax Credit (ITC) is maximized and compliant.
 -   **Credit Advisory Agent**: Calculates bank-standard Risk Scores and loan eligibility using cash-flow-based underwriting logic.
 -   **Decision Advisor (CFO)**: Runs "What-If" simulations (e.g., Hiring, CAPEX) using real-time runway and burn rate data.
+
+---
+
+## ⚡ High-Performance Architecture & Automation
+
+-   **High-Volume Parallel Processing**: Engineered to handle massive datasets securely. By implementing thread-safe SQLAlchemy Context Managers, SmartFlow's AI agents can query PostgreSQL in parallel without deadlocks.
+-   **Automated Testing Pipeline**: Built with a comprehensive automated integration testing suite using `pytest` and `pytest-asyncio` to guarantee reliability, code quality, and seamless release testing.
+-   **Real-time Intelligence**: Sub-second latency for dynamic calculations (e.g., exact 30-day net burn, runway forecasting) using a robust FastAPI REST backend.
 
 ---
 
@@ -40,9 +48,10 @@ SmartFlow utilizes a **Hierarchical Multi-Agent Architecture** to process comple
 ## 🛠️ Technology Stack
 
 -   **Frontend**: React 18, Vite, Recharts, Lucide Icons, Custom Glassmorphism CSS.
--   **Backend**: FastAPI, PostgreSQL, SQLAlchemy.
+-   **Backend**: FastAPI, PostgreSQL, SQLAlchemy (with robust connection pooling).
 -   **AI Orchestration**: LangGraph (Stateful Multi-Agent Graphs), LangChain.
--   **Intelligence Engine**: Groq (Llama-3.1-8B-Instant), Facebook Prophet (ML Forecasting).
+-   **Intelligence Engine**: Google Gemini 3.5 Flash Lite, Facebook Prophet (ML Forecasting).
+-   **Testing & CI/CD**: `pytest`, `pytest-asyncio`, FastAPI TestClient for automated integration environments.
 
 ---
 
@@ -61,9 +70,9 @@ source venv/bin/activate  # or venv\Scripts\activate
 pip install -r requirements.txt
 
 # Configure .env
-# GROQ_API_KEY=your_key
+# GOOGLE_API_KEY=your_gemini_api_key
+# GEMINI_MODEL=gemini-2.5-flash-lite
 # DATABASE_URL=postgresql://user:pass@localhost:5432/smartflow
-# AI_MODE=live
 
 uvicorn app.main:app --reload
 ```
@@ -75,7 +84,13 @@ npm install
 npm run dev
 ```
 
-### 3. Populate Data & Test
+### 3. Run Tests
+```bash
+cd backend
+pytest
+```
+
+### 4. Populate Data
 Use the `App UI -> Upload Data` to ingest your bank statements or run the seeder:
 ```bash
 python backend/populate_demo_data.py

@@ -2,6 +2,7 @@ fastapi
 uvicorn
 sqlalchemy
 pydantic
+pydantic-settings
 python-multipart
 python-jose[cryptography]
 passlib[bcrypt]
@@ -14,13 +15,11 @@ xgboost
 scikit-learn
 langchain
 langchain-community
-langchain-openai
 langchain-google-genai
-langchain-groq
 duckduckgo-search
 shap
-huggingface_hub
-langchain-huggingface
-langchain-ollama
 psycopg2-binary
-mcp
+python-dotenv
+httpx
+pytest
+pytest-asyncio

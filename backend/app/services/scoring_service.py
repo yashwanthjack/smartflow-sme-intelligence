@@ -124,9 +124,11 @@ class ScoringService:
         else:
             gst_compliance_rate = 0.5 # Default neutral if no data
 
-        # Bounce Rate (Real - Heuristic based on "bounced" in status or description if avail)
-        # For now, we use a placeholder as we don't have a 'bounced' status in Invoice model
-        bounce_rate = 0.0 
+        # Bounce Rate (Detected from Ledger descriptions)
+        bounce_keywords = ['bounce', 'return', 'reversed', 'insufficient funds', 'failed']
+        total_transactions = len(ledger_entries)
+        bounced_count = sum(1 for e in ledger_entries if any(kw in str(e.description).lower() for kw in bounce_keywords))
+        bounce_rate = (bounced_count / total_transactions) if total_transactions > 0 else 0.0 
 
         # Revenue Trend (Month over Month)
         current_month_revenue = sum(e.amount for e in ledger_entries if e.amount > 0 and e.ledger_date >= (date.today() - timedelta(days=30)))
